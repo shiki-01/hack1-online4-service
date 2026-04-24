@@ -203,7 +203,6 @@ export interface Task {
 	dueDate: Timestamp | null;
 	status: 'pending' | 'in_progress' | 'completed' | 'archived';
 	subtasks: { text: string; checked: boolean }[];
-	nfcTagId?: string;
 	createdAt?: Timestamp;
 	updatedAt?: Timestamp;
 }

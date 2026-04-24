@@ -8,12 +8,6 @@
 			"port": 5299
 		},
 		{
-			"name": "Dev Server (HTTPS / NFC対応)",
-			"runtimeExecutable": "bun",
-			"runtimeArgs": ["run", "dev", "--mode", "https"],
-			"port": 5173
-		},
-		{
 			"name": "Preview (ビルド後)",
 			"runtimeExecutable": "bun",
 			"runtimeArgs": ["run", "preview"],

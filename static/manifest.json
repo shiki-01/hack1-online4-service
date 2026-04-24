@@ -1,7 +1,7 @@
 {
-  "name": "NFC Task Coin",
-  "short_name": "TaskCoin",
-  "description": "NFCタグで管理する、楽しいタスク管理アプリ",
+  "name": "STACKS",
+  "short_name": "STACKS",
+  "description": "忙しさを、美しく。インテリア型タスク管理 STACKS",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f9fafb",
@@ -21,12 +21,5 @@
       "purpose": "any maskable"
     }
   ],
-  "categories": ["productivity", "utilities"],
-  "shortcuts": [
-    {
-      "name": "NFCスキャン",
-      "url": "/nfc",
-      "description": "NFCタグをスキャンする"
-    }
-  ]
+  "categories": ["productivity", "utilities"]
 }

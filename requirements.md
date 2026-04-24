@@ -1,43 +1,39 @@
-# NFCタスク管理アプリ 要件定義書 (Svelte 5 + MasterCSS + PWA対応版)
+# STACKS 要件定義書 (Svelte 5 + MasterCSS + PWA対応版)
 
 ## 1. アプリ概要
 
-- **アプリ名**: NFC Task Coin (仮)
-- **目的**: NFCタグ（コイン状デバイス）を利用した物理×デジタル連動タスク管理アプリ。タグをかざすだけでタスク登録/完了ができ、遊び心のある操作を実現。
-- **ターゲット**: 日常タスク管理を楽しくしたい個人ユーザー（学生/ビジネスパーソン）。
+- **プロダクト名**: STACKS
+- **キャッチコピー**: 忙しさを、美しく
+- **目的**: 溜まったタスクの解消をより楽しく、より簡単にするインテリア型タスク管理ソリューション
+- **ターゲット**: 日常タスク管理を楽しくしたい個人ユーザー（学生/ビジネスパーソン）
 - **フレームワーク**: Svelte 5 + MasterCSS
 - **PWA対応**: ホーム画面追加、オフライン動作、プッシュ通知
 - **バックエンド**: Firebase (Authentication, Firestore, FCM)
 - **認証**: Google Sign-In (Gmail前提)
 - **デプロイ**: Vercel/Netlify (PWA最適化)
+- **動作モード**: Kiosk モード (Webアプリをフルスクリーン起動)
 
 ## 2. 主要機能
 
-### 2.1 コア機能 (NFC連動 ※Web NFCブラウザAPI使用)
+### 2.1 Google Todo 連携
 
-- **タスク作成&NFC登録**:
-  - 入力: タイトル、説明、期限、優先度 (low/medium/high)、カテゴリ、繰り返し設定
-  - 操作: NFCタグをかざす → FirebaseでtaskId (UUID) 生成 → NDEF形式でタグに書き込み
-  - フィードバック: 成功音/振動/アニメーション (Web Vibration API)
-- **タスク読み取り&表示**:
-  - NFCタグをかざす → taskId取得 → Firestoreからデータフェッチ → 詳細画面表示
-- **タスク完了**:
-  - NFCタグをかざす → statusを'completed'に更新 → アーカイブ&通知
-- **タグ管理**: 登録済みタグ一覧、書き換え/削除
+- Google Todo リストとの同期
+- Todo リストの内容を本体ディスプレイに表示
+- 本体からタスクの確認・完了操作が可能
 
 ### 2.2 一般タスク管理機能
 
 - タスクリスト: フィルタ (未完了/カテゴリ/優先度)、ソート (期限/優先度)
 - 検索、リマインダー (FCMプッシュ通知)
-- サブタスク、添付ファイル (写真/メモ、IndexedDB)
+- サブタスク
 - オフライン同期 (Firestore offline + Service Worker)
 
 ### 2.3 UI/UX (MasterCSS)
 
-- ホーム: ダッシュボード (今日のタスク、完了率グラフ)
-- タグ検知: 即時モーダルポップアップ (アニメーション)
+- ホーム: ダッシュボード (今日のタスク、完了率)
 - テーマ: ダーク/ライト、色分け (優先度: 緑/黄/赤)
-- レスポンシブ: モバイルファースト
+- インテリアとしての外観にマッチした見た目
+- レスポンシブ: ディスプレイサイズ最適化
 
 ## 3. データモデル (Firestore)
 
@@ -55,8 +51,6 @@ tasks/{taskId}
 └── updatedAt: timestamp
 ```
 
-- ローカルキャッシュ: IndexedDB (オフライン用)
-
 ## 4. 技術スタック詳細
 
 ### 4.1 Frontend
@@ -65,7 +59,6 @@ tasks/{taskId}
 Svelte 5 + Vite
 ├── MasterCSS (@mastercss/vite)
 ├── Firebase SDK (modular v9+)
-├── Web NFC API (Chrome 89+/Android Chrome)
 ├── PWA: vite-plugin-pwa
 ├── State: Svelte Stores + Firebase Realtime
 └── UI: Skeleton + Heroicons
@@ -75,7 +68,7 @@ Svelte 5 + Vite
 
 ```
 manifest.json:
-- name: "NFC Task Coin"
+- name: "STACKS"
 - icons: 192x192, 512x512
 - theme_color: #3B82F6
 - display: standalone
@@ -92,35 +85,30 @@ Service Worker:
 src/
 ├── lib/
 │ ├── firebase.js (初期化、認証)
-│ ├── stores.js (タスクストア)
-│ └── nfc.js (Web NFCラッパー)
+│ └── stores.js (タスクストア)
 ├── routes/
 │ ├── +layout.svelte (認証ガード)
-│ ├── +page.svelte (ダッシュボード)
-│ ├── task/[id]/+page.svelte
-│ └── nfc/+page.svelte (NFC専用)
+│ └── +page.svelte (ダッシュボード)
 └── app.html (PWA meta)
 ```
 
-## 5. ユーザーストーリー (PWA重視)
+## 5. ユーザーストーリー
 
 1. PWAインストール → オフラインでもタスクリスト閲覧
-2. NFCタブでタグかざす → 即タスク表示/更新
-3. バックグラウンドで通知 → 期限到来時にプッシュ
+2. Google Todo 連携 → タスクがディスプレイに同期表示
+3. 本体操作でタスク確認・完了
+4. バックグラウンドで通知 → 期限到来時にプッシュ
 
 ## 6. 制約&ブラウザ対応
 
-- **Web NFC**: Chrome 89+ (Android実用的、iOS Safari未対応 → PWA+WebNFC)
 - **オフライン**: Service Worker + Firestore offline persistence
-- **フォールバック**: NFC不可時はQRコード代替
+- **Kiosk モード**: Chrome をフルスクリーンで起動
 
 ## 7. 開発フェーズ
 
 ```
 Phase 1 (MVP): 認証 + Firestore CRUD + MasterCSSレイアウト
-Phase 2: Web NFC統合 + PWA (Service Worker)
+Phase 2: Google Todo API 連携 + PWA (Service Worker)
 Phase 3: FCM通知 + オフライン同期 + アニメーション
-Phase 4: デプロイ (Vercel) + テスト
+Phase 4: 本体設計 (3Dプリンター) + ディスプレイ組み込み + デプロイ
 ```
-
-この仕様でSvelte 5 + MasterCSS + PWA実装を進めてください。
