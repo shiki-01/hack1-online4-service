@@ -34,12 +34,12 @@
 		rotateTo(currentIndex + (e.deltaY > 0 ? 1 : -1));
 	}
 
-	let touchStartY = 0;
-	function onTouchStart(e: TouchEvent) {
-		touchStartY = e.touches[0].clientY;
+	let pointerStartY = 0;
+	function onPointerDown(e: PointerEvent) {
+		pointerStartY = e.clientY;
 	}
-	function onTouchEnd(e: TouchEvent) {
-		const delta = touchStartY - e.changedTouches[0].clientY;
+	function onPointerUp(e: PointerEvent) {
+		const delta = pointerStartY - e.clientY;
 		if (Math.abs(delta) > 20) rotateTo(currentIndex + (delta > 0 ? 1 : -1));
 	}
 
@@ -62,8 +62,8 @@
 	tabindex="0"
 	role="button"
 	onwheel={onWheel}
-	ontouchstart={onTouchStart}
-	ontouchend={onTouchEnd}
+	onpointerdown={onPointerDown}
+	onpointerup={onPointerUp}
 	onkeydown={(e) => e.preventDefault()}
 >
 	<CircleClock />

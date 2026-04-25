@@ -10,7 +10,11 @@ html {
 }
 
 body {
-	min-height: 100dvh;
+	width: 720px;
+	height: 720px;
 	margin: 0;
+	overflow: hidden;
+	background: #0f0f0f;
 	-webkit-font-smoothing: antialiased;
+	touch-action: none;
 }

@@ -7,16 +7,18 @@ export default defineConfig(({ mode }) => {
 	const useHttps = mode === 'https';
 
 	return {
-		plugins: [
-			sveltekit(),
-			...(useHttps ? [basicSsl()] : []),
-			masterCSS()
-		],
+		plugins: [sveltekit(), ...(useHttps ? [basicSsl()] : []), masterCSS()],
 		server: {
 			host: true,
 			https: useHttps ? {} : undefined,
 			fs: {
-				allow: ['./master.css.ts']
+				allow: [
+					'C:/Users/kishi/Documents/GitHub/hack1-online4-service',
+					'..',
+					'../..',
+					'.claude',
+					'./master.css.ts'
+				]
 			}
 		}
 	};
