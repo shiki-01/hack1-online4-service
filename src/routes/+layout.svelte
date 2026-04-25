@@ -1,5 +1,6 @@
 <script lang="ts">
 	import '@master/normal.css';
+	import '../app.css';
 	import { fly } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
 	import { page } from '$app/state';
