@@ -36,11 +36,12 @@
 		{ cx: 56, cy: 88, r: 8, pair: colorPairs[0], angle: 70 }
 	];
 
-	const CONTAINER_R = 220;
+	const CONTAINER_R = 280;
 	const GRAVITY = 0.18;
 	const FRICTION = 0.985;
 	const RESTITUTION = 0.15;
 	const RESOLVE_ITERS = 4;
+	const GAP = 10;
 
 	interface Bubble {
 		x: number;
@@ -63,7 +64,7 @@
 
 		const tasks = get(pendingTasks);
 
-		const SIZE = 450;
+		const SIZE = 560;
 		const dpr = window.devicePixelRatio || 1;
 		canvas.width = SIZE * dpr;
 		canvas.height = SIZE * dpr;
@@ -118,7 +119,7 @@
 						const dx = bj.x - bi.x;
 						const dy = bj.y - bi.y;
 						const dist = Math.hypot(dx, dy);
-						const minDist = bi.r + bj.r + 1.5;
+						const minDist = bi.r + bj.r + 1.5 + GAP;
 						if (dist < minDist && dist > 0.01) {
 							const nx = dx / dist;
 							const ny = dy / dist;

@@ -37,7 +37,7 @@
 <div class="rel w:full h:full r:full bg:#2f2f2f" aria-label="analog clock">
 	{#each numerals as n (n)}
 		<div
-			class="numeral abs top:50% left:50% w:3rem h:3rem grid place-items:center f:3rem line-h:1em font-weight:700 user-select:none fg:#424242"
+			class="numeral abs top:50% left:50% w:fit h:fit grid place-items:center f:4rem line-h:1em font-weight:700 user-select:none fg:#424242"
 			class:active={h12 === n}
 			style="--angle: {n * 30}deg;"
 		>
@@ -46,38 +46,38 @@
 	{/each}
 
 	<div
-		class="hand z:3 w:8px h:190px bg:#F1F1F1::before"
+		class="hand z:3 w:8px h:260px bg:#F1F1F1::before"
 		style="transform:translateX(-50%) rotate({hourDeg}deg);"
 	></div>
 	<div
-		class="hand z:2 w:8px h:240px bg:#878787::before"
+		class="hand z:2 w:8px h:320px bg:#878787::before"
 		style="transform:translateX(-50%) rotate({minuteDeg}deg);"
 	></div>
 	<div
-		class="hand z:1 w:4px h:240px bg:#4E4E4E::before"
+		class="hand z:1 w:4px h:320px bg:#4E4E4E::before"
 		style="transform:translateX(-50%) rotate({secondDeg}deg);"
 	></div>
 
 	<div
-		class="abs top:50% left:50% translate(-50%,-50%) w:280px h:280px r:50% bg:#161616 z:5 flex flex:column ai:center jc:center gap:8px"
+		class="abs top:50% left:50% translate(-50%,-50%) w:368px square r:50% bg:#161616 z:5 flex flex:column ai:center jc:center gap:8px"
 	>
 		<div class="flex flex:column gap:6px ai:center">
-			<span class="f:1.8rem font-weight:500 ls:0.05em fg:#F7F7F7">{hh}:{mm}</span>
-			<span class="f:1rem fg:#777676">{mo}月{d}日 ({week[wd]})</span>
+			<span class="f:2.5rem font-weight:500 ls:0.05em fg:#F7F7F7">{hh}:{mm}</span>
+			<span class="f:1.2rem font-weight:500 fg:#777676">{mo}月{d}日 ({week[wd]})</span>
 		</div>
 		<div class="flex ai:baseline gap:8px">
 			<span
-				class="f:7rem font-weight:700 line-h:1 ~color|0.5s"
+				class="f:10rem font-weight:700 line-h:1 ~color|0.5s"
 				style="color:{countColor($pendingTasks.length)}">{$pendingTasks.length}</span
 			>
 		</div>
-		<span class="f:1.6rem font-weight:700 fg:#9D9D9D ls:0.1em">Tasks</span>
+		<span class="f:2rem font-weight:700 fg:#9D9D9D ls:0.1em">Tasks</span>
 	</div>
 </div>
 
 <style>
 	.numeral {
-		transform: translate(-50%, -50%) rotate(var(--angle)) translateY(-240px)
+		transform: translate(-50%, -50%) rotate(var(--angle)) translateY(-300px)
 			rotate(calc(-1 * var(--angle)));
 		transition: color 0.4s;
 	}
@@ -99,7 +99,7 @@
 		left: 0;
 		right: 0;
 		top: 0;
-		bottom: 150px;
+		bottom: 200px;
 		border-radius: 999px;
 	}
 </style>

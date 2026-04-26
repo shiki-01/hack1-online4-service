@@ -10,8 +10,8 @@
 	let currentIndex = $state(0);
 	let isAnimating = false;
 
-	const CARD_ANGLE = 25;
-	const CYLINDER_R = 200;
+	const CARD_ANGLE = 20;
+	const CYLINDER_R = 240;
 
 	function rotateTo(index: number) {
 		if (isAnimating || !drum) return;
@@ -68,7 +68,7 @@
 >
 	<CircleClock />
 
-	<div class="perspective w:300px h:220px flex ai:center jc:center">
+	<div class="perspective w:360px h:300px flex ai:center jc:center">
 		<div bind:this={drum} class="w:stretch h:72px rel transform-style:preserve-3d">
 			{#each $pendingTasks as task, i (task.id)}
 				{@const angle = i * CARD_ANGLE}

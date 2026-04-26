@@ -5,7 +5,7 @@
 </script>
 
 <div
-	class="abs left:50% top:50% z:10 pointer-events:none flex flex:column ai:center jc:center translate(-50%,-50%) w:608px h:608px"
+	class="abs left:50% top:50% z:10 pointer-events:none flex flex:column ai:center jc:center translate(-50%,-50%) w:770px square"
 >
 	<svg viewBox="0 0 100 100" class="rotate(-90deg)">
 		<path
