@@ -6,6 +6,12 @@
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
+	import { physicsRotation, modeSwitchEnabled } from '$lib/physicsController';
+	import PhysicsControls from '$lib/components/PhysicsControls.svelte';
+	import { untrack } from 'svelte';
+	import { get } from 'svelte/store';
+
+	const IS_PHYSICS = import.meta.env.VITE_IS_PHYSICS === 'true';
 
 	let { children } = $props();
 
@@ -20,6 +26,19 @@
 			(m) => page.url.pathname === m.href || page.url.pathname.startsWith(m.href + '/')
 		)
 	);
+
+	/** メインページ(clock/stack/table)にいるか */
+	const isMainPage = $derived(
+		modes.some((m) => page.url.pathname === m.href)
+	);
+
+	/** Physics コントロールを表示すべきページ (clock/stack/table + table/[id]) */
+	const showPhysicsControls = $derived(
+		modes.some((m) => page.url.pathname === m.href || page.url.pathname.startsWith(m.href + '/'))
+	);
+
+	/** table/[id] など、サブページにいるか */
+	const isSubPage = $derived(showPhysicsControls && !isMainPage);
 
 	let slideDir = $state(1); // 1: 左スワイプ(次へ), -1: 右スワイプ(前へ)
 
@@ -51,6 +70,44 @@
 			goto(resolve(modes[next].href));
 		}
 	}
+
+	// ---- Physics: knob でページ切替 (modeSwitchEnabled=true 時) ----
+	/**
+	 * 一周(360度) = 3ページ → 1ページあたり 120度
+	 * ノブをちょうど一周すると clock→stack→table→clock と循環する
+	 */
+	const DEGREES_PER_PAGE = 120;
+
+	// modeSwitchEnabled が true になった瞬間の回転値とページ index を記録
+	// これにより、ページ固有モードから戻ったときに突然ジャンプしない
+	let modeSwitchBaseRotation = 0;
+	let modeSwitchBasePageIndex = 0;
+
+	// modeSwitchEnabled が true になったタイミングを捕捉してベースラインを更新
+	$effect(() => {
+		if (!IS_PHYSICS || !$modeSwitchEnabled) return;
+		untrack(() => {
+			modeSwitchBaseRotation = get(physicsRotation);
+			modeSwitchBasePageIndex = currentIndex >= 0 ? currentIndex : 0;
+		});
+	});
+
+	// ノブ回転でページ切替
+	$effect(() => {
+		if (!IS_PHYSICS || !$modeSwitchEnabled || !isMainPage) return;
+
+		const rotation = $physicsRotation;
+		const delta = rotation - modeSwitchBaseRotation;
+		const steps = Math.round(delta / DEGREES_PER_PAGE);
+		const N = modes.length;
+		const newIndex = ((modeSwitchBasePageIndex + steps) % N + N) % N;
+		const curIdx = currentIndex >= 0 ? currentIndex : 0;
+
+		if (newIndex !== curIdx) {
+			slideDir = newIndex > curIdx ? 1 : -1;
+			goto(resolve(modes[newIndex].href));
+		}
+	});
 </script>
 
 <main
@@ -69,6 +126,10 @@
 				{@render children?.()}
 			</div>
 		{/key}
+
+		{#if IS_PHYSICS && showPhysicsControls}
+			<PhysicsControls disableToggle={isSubPage} />
+		{/if}
 	</div>
 </main>
 

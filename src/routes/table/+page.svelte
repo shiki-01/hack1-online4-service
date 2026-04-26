@@ -5,6 +5,10 @@
 	import { pendingTasks, deadlineColor } from '$lib/localTasks';
 	import gsap from 'gsap';
 	import CircleClock from '$lib/components/CircleClock.svelte';
+	import { physicsRotation, physicsClickCount, modeSwitchEnabled } from '$lib/physicsController';
+	import { get } from 'svelte/store';
+
+	const IS_PHYSICS = import.meta.env.VITE_IS_PHYSICS === 'true';
 
 	let drum = $state<HTMLDivElement | null>(null);
 	let currentIndex = $state(0);
@@ -45,6 +49,48 @@
 
 	onMount(() => {
 		if (drum) gsap.set(drum, { rotationX: 0 });
+	});
+
+	// ---- Physics: ノブでリスト操作 (modeSwitchEnabled=false 時) ----
+	/** ノブ 60度 ごとに 1 アイテム移動 (感度調整) */
+	const ITEM_DEG = 60;
+
+	/** modeSwitchEnabled が false になった瞬間の回転ベースライン */
+	import { untrack } from 'svelte';
+	let itemBaseRotation = 0;
+
+	$effect(() => {
+		if (!IS_PHYSICS || $modeSwitchEnabled) return;
+		// false になった瞬間にベースラインを取得
+		untrack(() => {
+			itemBaseRotation = get(physicsRotation);
+		});
+	});
+
+	/** ノブ回転 → テーブルインデックス変換 */
+	$effect(() => {
+		if (!IS_PHYSICS || $modeSwitchEnabled) return;
+		const tasks = $pendingTasks;
+		if (tasks.length === 0) return;
+		const delta = $physicsRotation - itemBaseRotation;
+		const rawIndex = Math.round(delta / ITEM_DEG);
+		const newIndex = Math.max(0, Math.min(rawIndex, tasks.length - 1));
+		if (newIndex !== currentIndex) rotateTo(newIndex);
+	});
+
+	/** ボタンクリック → 選択中アイテムに遷移 */
+	let prevClickCount = get(physicsClickCount);
+	$effect(() => {
+		const count = $physicsClickCount;
+		if (!IS_PHYSICS || $modeSwitchEnabled) {
+			prevClickCount = count;
+			return;
+		}
+		if (count === prevClickCount) return;
+		prevClickCount = count;
+		const tasks = $pendingTasks;
+		const task = tasks[currentIndex];
+		if (task) goto(resolve('/table/[id]', { id: task.id }));
 	});
 
 	function dueDateLabel(dueDate: Date | null): string {

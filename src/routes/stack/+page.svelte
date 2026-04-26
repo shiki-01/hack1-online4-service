@@ -4,6 +4,9 @@
 	import { pendingTasks, bubbleRadius } from '$lib/localTasks';
 	import gsap from 'gsap';
 	import CircleClock from '$lib/components/CircleClock.svelte';
+	import { physicsRotation, modeSwitchEnabled } from '$lib/physicsController';
+
+	const IS_PHYSICS = import.meta.env.VITE_IS_PHYSICS === 'true';
 
 	const colorPairs: [string, string][] = [
 		['#D94F45', '#B83D34'],
@@ -59,6 +62,11 @@
 	let bubbles: Bubble[] = [];
 	let tickerCallback: (() => void) | null = null;
 
+	/** ハムスターホイール: 前フレームの回転値を記録してΔを計算 */
+	let prevPhysicsRotation = 0;
+	/** 接線力の倍率 (小さいほど回転の影響が小さい) */
+	const HAMSTER_FACTOR = 25;
+
 	onMount(() => {
 		if (!canvas) return;
 
@@ -103,8 +111,36 @@
 		});
 
 		function physicsTick() {
+			// ハムスターホイール: 重力は常に下向き固定。
+			// VITE_IS_PHYSICS=true かつ modeSwitchEnabled=false のとき、
+			// ノブの回転量に比例した接線力をボールに加える。
+			let tangentialOmega = 0;
+			if (IS_PHYSICS && !get(modeSwitchEnabled)) {
+				const currentRot = get(physicsRotation);
+				const rotDelta = currentRot - prevPhysicsRotation;
+				prevPhysicsRotation = currentRot;
+				// フレームあたりのラジアン変化量
+				tangentialOmega = (rotDelta * Math.PI) / 180;
+			} else {
+				prevPhysicsRotation = get(physicsRotation);
+			}
+
 			for (const b of bubbles) {
+				// 重力は常に下向き
 				b.vy += GRAVITY;
+
+				// ハムスターホイール: 接線方向に力を加える
+				// CW回転(y下正の座標系)での接線方向 = (-y/dist, x/dist)
+				if (Math.abs(tangentialOmega) > 0.0001) {
+					const dist = Math.hypot(b.x, b.y);
+					if (dist > 0.01) {
+						const tx = -b.y / dist;
+						const ty = b.x / dist;
+						b.vx += tx * tangentialOmega * HAMSTER_FACTOR;
+						b.vy += ty * tangentialOmega * HAMSTER_FACTOR;
+					}
+				}
+
 				b.vx *= FRICTION;
 				b.vy *= FRICTION;
 				b.x += b.vx;

@@ -4,6 +4,9 @@
 	import { resolve } from '$app/paths';
 	import { localTasks, completeLocalTask, removeLocalTask, deadlineColor } from '$lib/localTasks';
 	import { get } from 'svelte/store';
+	import { physicsRotation, physicsClickCount } from '$lib/physicsController';
+
+	const IS_PHYSICS = import.meta.env.VITE_IS_PHYSICS === 'true';
 
 	const now = new Date();
 	const dateStr = `${now.getMonth() + 1}月${now.getDate()}日（${'日月火水木金土'[now.getDay()]}）`;
@@ -40,6 +43,47 @@
 		removeLocalTask(task.id!);
 		goto(resolve('/table'));
 	}
+
+	function handleBack() {
+		goto(resolve('/table'));
+	}
+
+	// ---- Physics: ノブでアクション選択、ボタンで確定 ----
+	/** アクション順序: 戻る → 完了 → 削除 */
+	const ACTIONS = ['back', 'complete', 'delete'] as const;
+	type Action = (typeof ACTIONS)[number];
+
+	/** ノブ 60度 ごとに 1 アクション移動 */
+	const ACTION_DEG = 60;
+
+	let selectedAction = $state<Action>('back');
+
+	/**
+	 * このページに入った瞬間の回転値をベースラインとして保持。
+	 * これにより、ページナビゲーションで積算された回転値に影響されない。
+	 */
+	const baseRotation = get(physicsRotation);
+
+	/** ノブ回転でアクション選択 (常に有効) */
+	$effect(() => {
+		if (!IS_PHYSICS) return;
+		const delta = $physicsRotation - baseRotation;
+		const rawIndex = Math.round(delta / ACTION_DEG);
+		const clampedIndex = Math.max(0, Math.min(rawIndex, ACTIONS.length - 1));
+		selectedAction = ACTIONS[clampedIndex];
+	});
+
+	/** ボタンクリック → 選択中アクションを実行 (常に有効) */
+	let prevClickCount = get(physicsClickCount);
+	$effect(() => {
+		if (!IS_PHYSICS) return;
+		const count = $physicsClickCount;
+		if (count === prevClickCount) return;
+		prevClickCount = count;
+		if (selectedAction === 'back') handleBack();
+		else if (selectedAction === 'complete') handleComplete();
+		else if (selectedAction === 'delete') handleDelete();
+	});
 </script>
 
 <div class="rel w:100% h:100% flex flex:column ai:center jc:center px:48px box-sizing:border-box">
@@ -74,7 +118,12 @@
 		</div>
 
 		<div class="flex gap:16 mt:32 w:100% max-w:380px">
-			<button class="action-btn action-btn--delete" onclick={handleDelete} aria-label="削除">
+			<button
+				class="action-btn action-btn--delete"
+				class:phy-selected={IS_PHYSICS && selectedAction === 'delete'}
+				onclick={handleDelete}
+				aria-label="削除"
+			>
 				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 					<polyline points="3 6 5 6 21 6" />
 					<path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
@@ -83,7 +132,12 @@
 				</svg>
 			</button>
 
-			<button class="action-btn action-btn--complete" onclick={handleComplete} aria-label="完了">
+			<button
+				class="action-btn action-btn--complete"
+				class:phy-selected={IS_PHYSICS && selectedAction === 'complete'}
+				onclick={handleComplete}
+				aria-label="完了"
+			>
 				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
 					<polyline points="20 6 9 17 4 12" />
 				</svg>
@@ -93,6 +147,7 @@
 
 	<button
 		class="abs top:48 left:48 bg:none b:none color:#555 cursor:pointer p:4 flex ai:center transition:color|0.15s hover:color:#888"
+		class:phy-back-selected={IS_PHYSICS && selectedAction === 'back'}
 		onclick={() => goto(resolve('/table'))}
 		aria-label="一覧に戻る"
 	>
@@ -130,5 +185,15 @@
 		background: #1a2a1a;
 		color: #44cc66;
 		border: 1px solid #203a20;
+	}
+
+	/* Physics: 選択中アクションのハイライト */
+	.phy-selected {
+		box-shadow: 0 0 0 2px rgba(78, 205, 196, 0.6);
+		filter: brightness(1.3);
+	}
+
+	.phy-back-selected {
+		color: #4ecdc4 !important;
 	}
 </style>
