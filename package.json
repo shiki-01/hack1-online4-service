@@ -6,6 +6,7 @@
 	"scripts": {
 		"dev": "vite dev",
 		"dev:https": "vite dev --mode https --host",
+		"start": "vite build & node build",
 		"build": "vite build",
 		"preview": "vite preview",
 		"prepare": "svelte-kit sync || echo ''",
