@@ -13,18 +13,42 @@
 	let drum = $state<HTMLDivElement | null>(null);
 	let currentIndex = $state(0);
 	let isAnimating = false;
+	let isDragging = false;
+	let activePointerId: number | null = null;
+	let dragStartY = 0;
+	let dragStartRotation = 0;
+	let currentRotationX = 0;
 
 	const CARD_ANGLE = 20;
 	const CYLINDER_R = 240;
+	const WHEEL_PX_PER_ITEM = 120;
+	const DRAG_ROTATION_FACTOR = 0.2;
+
+	function clampIndex(index: number) {
+		const tasks = $pendingTasks;
+		return Math.max(0, Math.min(index, tasks.length - 1));
+	}
+
+	function clampRotation(rotationX: number) {
+		const maxRotation = clampIndex($pendingTasks.length - 1) * CARD_ANGLE;
+		return Math.max(0, Math.min(rotationX, maxRotation));
+	}
+
+	function setRotation(rotationX: number) {
+		if (!drum) return;
+		currentRotationX = clampRotation(rotationX);
+		currentIndex = clampIndex(Math.round(currentRotationX / CARD_ANGLE));
+		gsap.set(drum, { rotationX: currentRotationX });
+	}
 
 	function rotateTo(index: number) {
 		if (isAnimating || !drum) return;
 		isAnimating = true;
-		const tasks = $pendingTasks;
-		const clampedIndex = Math.max(0, Math.min(index, tasks.length - 1));
+		const clampedIndex = clampIndex(index);
 		currentIndex = clampedIndex;
+		currentRotationX = clampedIndex * CARD_ANGLE;
 		gsap.to(drum, {
-			rotationX: clampedIndex * CARD_ANGLE,
+			rotationX: currentRotationX,
 			duration: 0.55,
 			ease: 'power3.out',
 			onComplete: () => {
@@ -35,28 +59,52 @@
 
 	function onWheel(e: WheelEvent) {
 		e.preventDefault();
-		rotateTo(currentIndex + (e.deltaY > 0 ? 1 : -1));
+		const steps = Math.max(1, Math.round(Math.abs(e.deltaY) / WHEEL_PX_PER_ITEM));
+		rotateTo(currentIndex + Math.sign(e.deltaY) * steps);
 	}
 
-	let pointerStartY = 0;
 	function onPointerDown(e: PointerEvent) {
-		pointerStartY = e.clientY;
+		if (!drum) return;
+		isDragging = true;
+		activePointerId = e.pointerId;
+		dragStartY = e.clientY;
+		dragStartRotation = currentRotationX;
+		isAnimating = false;
+		gsap.killTweensOf(drum);
+		(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+	}
+	function onPointerMove(e: PointerEvent) {
+		if (!isDragging || e.pointerId !== activePointerId) return;
+		const delta = dragStartY - e.clientY;
+		setRotation(dragStartRotation + delta * DRAG_ROTATION_FACTOR);
 	}
 	function onPointerUp(e: PointerEvent) {
-		const delta = pointerStartY - e.clientY;
-		if (Math.abs(delta) > 20) rotateTo(currentIndex + (delta > 0 ? 1 : -1));
+		if (!isDragging || e.pointerId !== activePointerId) return;
+		isDragging = false;
+		activePointerId = null;
+		(e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+		rotateTo(currentIndex);
+	}
+	function onPointerCancel(e: PointerEvent) {
+		if (!isDragging || e.pointerId !== activePointerId) return;
+		isDragging = false;
+		activePointerId = null;
+		rotateTo(currentIndex);
 	}
 
 	onMount(() => {
-		if (drum) gsap.set(drum, { rotationX: 0 });
+		if (drum) {
+			currentRotationX = 0;
+			gsap.set(drum, { rotationX: 0 });
+		}
 		if (typeof window !== "undefined") {
 			window.document.body.style.backgroundColor = "#161616"
 		}
 	});
 
 	// ---- Physics: ノブでリスト操作 (modeSwitchEnabled=false 時) ----
-	/** ノブ 60度 ごとに 1 アイテム移動 (感度調整) */
-	const ITEM_DEG = 60;
+	/** ノブ 30度 ごとに 1 アイテム移動 (感度調整) */
+	const ITEM_DEG = 30;
 
 	/** modeSwitchEnabled が false になった瞬間の回転ベースライン */
 	import { untrack } from 'svelte';
@@ -77,7 +125,7 @@
 		if (tasks.length === 0) return;
 		const delta = $physicsRotation - itemBaseRotation;
 		const rawIndex = Math.round(delta / ITEM_DEG);
-		const newIndex = Math.max(0, Math.min(rawIndex, tasks.length - 1));
+		const newIndex = clampIndex(rawIndex);
 		if (newIndex !== currentIndex) rotateTo(newIndex);
 	});
 
@@ -110,9 +158,12 @@
 	class="rel w:full h:full flex flex:column ai:center jc:center overflow:hidden"
 	tabindex="0"
 	role="button"
+	style="touch-action: none"
 	onwheel={onWheel}
 	onpointerdown={onPointerDown}
+	onpointermove={onPointerMove}
 	onpointerup={onPointerUp}
+	onpointercancel={onPointerCancel}
 	onkeydown={(e) => e.preventDefault()}
 >
 	<CircleClock />
