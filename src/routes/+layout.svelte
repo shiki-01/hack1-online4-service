@@ -12,6 +12,7 @@
 	import { get } from 'svelte/store';
 
 	const IS_PHYSICS = import.meta.env.VITE_IS_PHYSICS === 'true';
+	const VERSION = '1.0.0';
 
 	let { children } = $props();
 
@@ -116,6 +117,7 @@
 	onpointerdown={onPointerDown}
 	onpointerup={onPointerUp}
 >
+	<div class="fixed top:10px left:10px fg:white">{VERSION}</div>
 	<div class="w:100% h:100% overflow:hidden r:full rel">
 		{#key page.url.pathname}
 			<div
