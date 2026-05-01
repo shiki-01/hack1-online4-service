@@ -22,7 +22,7 @@
 	const CARD_ANGLE = 20;
 	const CYLINDER_R = 240;
 	const WHEEL_PX_PER_ITEM = 120;
-	const DRAG_ROTATION_FACTOR = 0.2;
+	const DRAG_ROTATION_FACTOR = 0.15;
 
 	function clampIndex(index: number) {
 		const tasks = $pendingTasks;
