@@ -10,36 +10,35 @@
 	let loopCount = $state(10);
 
 	let currentLoop = $state(1);
-	let elapsed = $state(0);
+	let remaining = $state(0);
 	let isPaused = $state(false);
 	let intervalId: ReturnType<typeof setInterval> | undefined;
 
 	const timeDisplay = $derived(
-		`${String(Math.floor(elapsed / 3600)).padStart(2, '0')}:${String(Math.floor((elapsed % 3600) / 60)).padStart(2, '0')}:${String(elapsed % 60).padStart(2, '0')}`
+		`${String(Math.floor(remaining / 3600)).padStart(2, '0')}:${String(Math.floor((remaining % 3600) / 60)).padStart(2, '0')}:${String(remaining % 60).padStart(2, '0')}`
 	);
 
 	function startTimer() {
 		timerState = 'work';
 		currentLoop = 1;
-		elapsed = 0;
+		remaining = workMinutes * 60;
 		isPaused = false;
 		clearInterval(intervalId);
 		intervalId = setInterval(() => {
 			if (isPaused) return;
-			elapsed += 1;
-			const limit = timerState === 'work' ? workMinutes * 60 : restMinutes * 60;
-			if (elapsed >= limit) {
+			remaining -= 1;
+			if (remaining <= 0) {
 				if (timerState === 'work') {
 					if (currentLoop >= loopCount) {
 						stopTimer();
 					} else {
 						timerState = 'break';
-						elapsed = 0;
+						remaining = restMinutes * 60;
 					}
 				} else {
 					currentLoop += 1;
 					timerState = 'work';
-					elapsed = 0;
+					remaining = workMinutes * 60;
 				}
 			}
 		}, 1000);
@@ -53,22 +52,23 @@
 		clearInterval(intervalId);
 		intervalId = undefined;
 		timerState = 'setup';
-		elapsed = 0;
+		remaining = 0;
 		currentLoop = 1;
 		isPaused = false;
 	}
 
 	function skipInterval() {
-		elapsed = 0;
 		if (timerState === 'work') {
 			if (currentLoop >= loopCount) {
 				stopTimer();
 			} else {
 				timerState = 'break';
+				remaining = restMinutes * 60;
 			}
 		} else {
 			currentLoop += 1;
 			timerState = 'work';
+			remaining = workMinutes * 60;
 		}
 	}
 
