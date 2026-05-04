@@ -37,6 +37,7 @@
 	let { children } = $props();
 
 	const modes = [
+		{ href: '/pomodoro' },
 		{ href: '/clock' },
 		{ href: '/stack' },
 		{ href: '/table' }
@@ -106,10 +107,10 @@
 
 	// ---- Physics: knob でページ切替 (modeSwitchEnabled=true 時) ----
 	/**
-	 * 一周(360度) = 3ページ → 1ページあたり 120度
-	 * ノブをちょうど一周すると clock→stack→table→clock と循環する
+	 * 一周(360度) = 4ページ → 1ページあたり 90度
+	 * ノブをちょうど一周すると pomodoro→clock→stack→table→pomodoro と循環する
 	 */
-	const DEGREES_PER_PAGE = 120;
+	const DEGREES_PER_PAGE = 90;
 
 	// modeSwitchEnabled が true になった瞬間の回転値とページ index を記録
 	// これにより、ページ固有モードから戻ったときに突然ジャンプしない

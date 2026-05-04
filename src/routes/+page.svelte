@@ -4,6 +4,6 @@
 	import { onMount } from 'svelte';
 
 	onMount(() => {
-		goto(resolve('/clock'), { replaceState: true });
+		goto(resolve('/pomodoro'), { replaceState: true });
 	});
 </script>
