@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { pomodoroPhase, pomodoroTimeDisplay } from '$lib/pomodoroStore';
+
 	const now = new Date();
 	const dateStr = `${now.getMonth() + 1}月${now.getDate()}日 (${'日月火水木金土'[now.getDay()]})`;
 	const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
@@ -27,5 +29,18 @@
 				{timeStr}
 			</textPath>
 		</text>
+
+		{#if $pomodoroPhase !== 'idle'}
+			<text font-size="4" font-weight="700">
+				<textPath
+					href="#arcPath"
+					startOffset="75%"
+					text-anchor="middle"
+					fill={$pomodoroPhase === 'work' ? '#e68938' : '#50c2fb'}
+				>
+					{$pomodoroTimeDisplay}
+				</textPath>
+			</text>
+		{/if}
 	</svg>
 </div>

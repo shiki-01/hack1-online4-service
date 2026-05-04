@@ -1,85 +1,26 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
+	import { onMount } from 'svelte';
 	import { pendingTasks } from '$lib/localTasks';
+	import {
+		pomodoroPhase,
+		pomodoroLoop,
+		pomodoroTimeDisplay,
+		isPaused,
+		startTimer,
+		stopTimer,
+		togglePause,
+		skipInterval
+	} from '$lib/pomodoroStore';
 
-	type TimerState = 'setup' | 'work' | 'break';
-	let timerState = $state<TimerState>('setup');
-
+	// セットアップUI用のローカル設定値
 	let workMinutes = $state(25);
 	let restMinutes = $state(5);
 	let loopCount = $state(10);
-
-	let currentLoop = $state(1);
-	let remaining = $state(0);
-	let isPaused = $state(false);
-	let intervalId: ReturnType<typeof setInterval> | undefined;
-
-	const timeDisplay = $derived(
-		`${String(Math.floor(remaining / 3600)).padStart(2, '0')}:${String(Math.floor((remaining % 3600) / 60)).padStart(2, '0')}:${String(remaining % 60).padStart(2, '0')}`
-	);
-
-	function startTimer() {
-		timerState = 'work';
-		currentLoop = 1;
-		remaining = workMinutes * 60;
-		isPaused = false;
-		clearInterval(intervalId);
-		intervalId = setInterval(() => {
-			if (isPaused) return;
-			remaining -= 1;
-			if (remaining <= 0) {
-				if (timerState === 'work') {
-					if (currentLoop >= loopCount) {
-						stopTimer();
-					} else {
-						timerState = 'break';
-						remaining = restMinutes * 60;
-					}
-				} else {
-					currentLoop += 1;
-					timerState = 'work';
-					remaining = workMinutes * 60;
-				}
-			}
-		}, 1000);
-	}
-
-	function togglePause() {
-		isPaused = !isPaused;
-	}
-
-	function stopTimer() {
-		clearInterval(intervalId);
-		intervalId = undefined;
-		timerState = 'setup';
-		remaining = 0;
-		currentLoop = 1;
-		isPaused = false;
-	}
-
-	function skipInterval() {
-		if (timerState === 'work') {
-			if (currentLoop >= loopCount) {
-				stopTimer();
-			} else {
-				timerState = 'break';
-				remaining = restMinutes * 60;
-			}
-		} else {
-			currentLoop += 1;
-			timerState = 'work';
-			remaining = workMinutes * 60;
-		}
-	}
 
 	onMount(() => {
 		if (typeof window !== 'undefined') {
 			window.document.body.style.backgroundColor = '#2f2f2f';
 		}
-	});
-
-	onDestroy(() => {
-		clearInterval(intervalId);
 	});
 </script>
 
@@ -89,7 +30,7 @@
 	<div class="ring" style="width: 554px; height: 554px;"></div>
 	<div class="ring" style="width: 436px; height: 436px;"></div>
 
-	{#if timerState === 'setup'}
+	{#if $pomodoroPhase === 'idle'}
 		<!-- ─── Setup state ─── -->
 		<div class="content-wrap">
 			<!-- Time controls row -->
@@ -139,7 +80,7 @@
 			</div>
 
 			<!-- Play button -->
-			<button class="play-btn" onclick={startTimer}>
+			<button class="play-btn" onclick={() => startTimer(workMinutes, restMinutes, loopCount)}>
 				<svg width="36" height="36" viewBox="0 0 36 36" fill="none">
 					<polygon points="10,5 31,18 10,31" fill="#f7f7f7"/>
 				</svg>
@@ -159,18 +100,18 @@
 			<div class="flex ai:center jc:center gap:20px">
 				<span
 					class="status-text"
-					style="color: {timerState === 'work' ? '#e68938' : '#50c2fb'};"
+					style="color: {$pomodoroPhase === 'work' ? '#e68938' : '#50c2fb'};"
 				>
-					{timerState === 'work' ? '作業中' : '休憩中'}
+					{$pomodoroPhase === 'work' ? '作業中' : '休憩中'}
 				</span>
 				<span class="progress-text">
-					<span class="progress-cur">{currentLoop}</span>
-					<span class="progress-sep">/{loopCount}</span>
+					<span class="progress-cur">{$pomodoroLoop.current}</span>
+					<span class="progress-sep">/{$pomodoroLoop.total}</span>
 				</span>
 			</div>
 
 			<!-- Timer display -->
-			<div class="timer-display">{timeDisplay}</div>
+			<div class="timer-display">{$pomodoroTimeDisplay}</div>
 
 			<!-- Control buttons -->
 			<div class="flex ai:center jc:center gap:12px">
@@ -183,7 +124,7 @@
 
 				<!-- Pause / Resume -->
 				<button class="ctrl-btn" style="width: 130px;" onclick={togglePause}>
-					{#if isPaused}
+					{#if $isPaused}
 						<svg width="28" height="28" viewBox="0 0 28 28" fill="none">
 							<polygon points="7,3 25,14 7,25" fill="#f7f7f7"/>
 						</svg>

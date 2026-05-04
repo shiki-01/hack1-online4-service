@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { pendingTasks, countColor } from '$lib/localTasks';
+	import { pomodoroPhase, pomodoroTimeDisplay } from '$lib/pomodoroStore';
 
 	let now = $state(new Date());
 	let frameId: number | undefined;
@@ -64,10 +65,19 @@
 	<div
 		class="abs top:50% left:50% translate(-50%,-50%) w:368px square r:50% bg:#161616 z:5 flex flex:column ai:center jc:center gap:8px"
 	>
-		<div class="flex flex:column gap:6px ai:center">
-			<span class="f:2.5rem font-weight:500 ls:0.05em fg:#F7F7F7">{hh}:{mm}</span>
-			<span class="f:1.2rem font-weight:500 fg:#777676">{mo}月{d}日 ({week[wd]})</span>
-		</div>
+		{#if $pomodoroPhase !== 'idle'}
+			<div class="pomodoro-badge">
+				<span class="pomodoro-status" style="color: {$pomodoroPhase === 'work' ? '#e68938' : '#50c2fb'};">
+					{$pomodoroPhase === 'work' ? '作業中' : '休憩中'}
+				</span>
+				<span class="pomodoro-time">{$pomodoroTimeDisplay}</span>
+			</div>
+		{:else}
+			<div class="flex flex:column gap:6px ai:center">
+				<span class="f:2.5rem font-weight:500 ls:0.05em fg:#F7F7F7">{hh}:{mm}</span>
+				<span class="f:1.2rem font-weight:500 fg:#777676">{mo}月{d}日 ({week[wd]})</span>
+			</div>
+		{/if}
 		<div class="flex ai:baseline gap:8px">
 			<span
 				class="f:10rem font-weight:700 line-h:1 ~color|0.5s"
@@ -104,5 +114,31 @@
 		top: 0;
 		bottom: 200px;
 		border-radius: 999px;
+	}
+
+	.pomodoro-badge {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		width: 206px;
+		height: 79px;
+		background: #2f2f2f;
+		border-radius: 54px;
+		gap: 2px;
+	}
+
+	.pomodoro-status {
+		font-size: 1.375rem;
+		font-weight: 700;
+		line-height: 1;
+	}
+
+	.pomodoro-time {
+		font-size: 2.25rem;
+		font-weight: 600;
+		color: #f7f7f7;
+		line-height: 1;
+		font-family: 'Reddit Sans', sans-serif;
 	}
 </style>
