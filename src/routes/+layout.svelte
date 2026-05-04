@@ -8,6 +8,7 @@
 	import { resolve } from '$app/paths';
 	import { physicsRotation, modeSwitchEnabled, pushRotation, pushClick } from '$lib/physicsController';
 	import PhysicsControls from '$lib/components/PhysicsControls.svelte';
+	import Nav from '$lib/components/Nav.svelte';
 	import { untrack } from 'svelte';
 	import { get } from 'svelte/store';
 	import { onMount } from 'svelte';
@@ -40,7 +41,8 @@
 		{ href: '/pomodoro' },
 		{ href: '/clock' },
 		{ href: '/stack' },
-		{ href: '/table' }
+		{ href: '/table' },
+		{ href: '/settings' }
 	] as const;
 
 	const currentIndex = $derived(
@@ -65,15 +67,20 @@
 	let slideDir = $state(1); // 1: 左スワイプ(次へ), -1: 右スワイプ(前へ)
 
 	// ページ遷移前にスライド方向を自動設定
-	// サブページへの遷移は右から(1)、サブページから戻る場合は左から(-1)
 	beforeNavigate(({ to }) => {
 		if (!to) return;
 		const toPath = to.url.pathname;
 		const fromPath = page.url.pathname;
 		const toIsSub   = !modes.some(m => toPath   === m.href) && modes.some(m => toPath.startsWith(m.href + '/'));
 		const fromIsSub = !modes.some(m => fromPath === m.href) && modes.some(m => fromPath.startsWith(m.href + '/'));
-		if (!fromIsSub && toIsSub)   slideDir = 1;  // メイン → サブ: 右からスライドイン
-		if ( fromIsSub && !toIsSub)  slideDir = -1; // サブ → メイン: 左からスライドイン
+		if (!fromIsSub && toIsSub)  { slideDir = 1;  return; } // メイン → サブ
+		if ( fromIsSub && !toIsSub) { slideDir = -1; return; } // サブ → メイン
+		// メイン → メイン: ルート順でスライド方向を決定 (ナビ / スワイプ共通)
+		const fromIdx = modes.findIndex(m => fromPath === m.href);
+		const toIdx   = modes.findIndex(m => toPath   === m.href);
+		if (fromIdx !== -1 && toIdx !== -1) {
+			slideDir = toIdx > fromIdx ? 1 : -1;
+		}
 	});
 
 	let pointerStartX = 0;
@@ -107,10 +114,10 @@
 
 	// ---- Physics: knob でページ切替 (modeSwitchEnabled=true 時) ----
 	/**
-	 * 一周(360度) = 4ページ → 1ページあたり 90度
-	 * ノブをちょうど一周すると pomodoro→clock→stack→table→pomodoro と循環する
+	 * 一周(360度) = 5ページ → 1ページあたり 72度
+	 * ノブをちょうど一周すると pomodoro→clock→stack→table→settings→pomodoro と循環する
 	 */
-	const DEGREES_PER_PAGE = 90;
+	const DEGREES_PER_PAGE = 72;
 
 	// modeSwitchEnabled が true になった瞬間の回転値とページ index を記録
 	// これにより、ページ固有モードから戻ったときに突然ジャンプしない
@@ -163,6 +170,10 @@
 				{@render children?.()}
 			</div>
 		{/key}
+
+		{#if isMainPage}
+			<Nav />
+		{/if}
 
 		{#if IS_PHYSICS && showPhysicsControls}
 			<PhysicsControls disableToggle={isSubPage} />
