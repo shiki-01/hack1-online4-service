@@ -19,12 +19,12 @@
 
 	onMount(() => {
 		if (typeof window !== 'undefined') {
-			window.document.body.style.backgroundColor = '#2f2f2f';
+			window.document.body.style.backgroundColor = 'var(--base_5)';
 		}
 	});
 </script>
 
-<div class="rel w:full h:full r:full bg:#2f2f2f overflow:hidden" aria-label="pomodoro timer">
+<div class="rel w:full h:full r:full bg:$(base_5) overflow:hidden" aria-label="pomodoro timer">
 	<!-- Decorative concentric rings -->
 	<div class="ring" style="width: 672px; height: 672px;"></div>
 	<div class="ring" style="width: 554px; height: 554px;"></div>
@@ -38,11 +38,11 @@
 				<!-- Work time (large, left) -->
 				<div class="flex flex:column ai:center gap:4px">
 					<button class="arrow-btn" onclick={() => (workMinutes = Math.min(workMinutes + 1, 99))}>
-						<svg width="20" height="12" viewBox="0 0 20 12" fill="none"><path d="M1 11L10 2L19 11" stroke="#797979" stroke-width="2.5" stroke-linecap="round"/></svg>
+						<svg width="20" height="12" viewBox="0 0 20 12" fill="none"><path d="M1 11L10 2L19 11" style="stroke: var(--base_2)" stroke-width="2.5" stroke-linecap="round"/></svg>
 					</button>
 					<span class="work-num">{workMinutes}</span>
 					<button class="arrow-btn" onclick={() => (workMinutes = Math.max(workMinutes - 1, 1))}>
-						<svg width="20" height="12" viewBox="0 0 20 12" fill="none"><path d="M1 1L10 10L19 1" stroke="#797979" stroke-width="2.5" stroke-linecap="round"/></svg>
+						<svg width="20" height="12" viewBox="0 0 20 12" fill="none"><path d="M1 1L10 10L19 1" style="stroke: var(--base_2)" stroke-width="2.5" stroke-linecap="round"/></svg>
 					</button>
 					<span class="ctrl-label">作業時間(分)</span>
 				</div>
@@ -53,11 +53,11 @@
 					<div class="flex ai:center gap:10px">
 						<div class="flex flex:column ai:center gap:2px">
 							<button class="arrow-btn-sm" onclick={() => (restMinutes = Math.min(restMinutes + 1, 30))}>
-								<svg width="14" height="9" viewBox="0 0 14 9" fill="none"><path d="M1 8L7 2L13 8" stroke="#797979" stroke-width="2" stroke-linecap="round"/></svg>
+								<svg width="14" height="9" viewBox="0 0 14 9" fill="none"><path d="M1 8L7 2L13 8" style="stroke: var(--base_2)" stroke-width="2" stroke-linecap="round"/></svg>
 							</button>
 							<span class="sub-num">{restMinutes}</span>
 							<button class="arrow-btn-sm" onclick={() => (restMinutes = Math.max(restMinutes - 1, 1))}>
-								<svg width="14" height="9" viewBox="0 0 14 9" fill="none"><path d="M1 1L7 7L13 1" stroke="#797979" stroke-width="2" stroke-linecap="round"/></svg>
+								<svg width="14" height="9" viewBox="0 0 14 9" fill="none"><path d="M1 1L7 7L13 1" style="stroke: var(--base_2)" stroke-width="2" stroke-linecap="round"/></svg>
 							</button>
 						</div>
 						<span class="sub-label">休憩時間(分)</span>
@@ -67,11 +67,11 @@
 					<div class="flex ai:center gap:10px">
 						<div class="flex flex:column ai:center gap:2px">
 							<button class="arrow-btn-sm" onclick={() => (loopCount = Math.min(loopCount + 1, 99))}>
-								<svg width="14" height="9" viewBox="0 0 14 9" fill="none"><path d="M1 8L7 2L13 8" stroke="#797979" stroke-width="2" stroke-linecap="round"/></svg>
+								<svg width="14" height="9" viewBox="0 0 14 9" fill="none"><path d="M1 8L7 2L13 8" style="stroke: var(--base_2)" stroke-width="2" stroke-linecap="round"/></svg>
 							</button>
 							<span class="sub-num">{loopCount}</span>
 							<button class="arrow-btn-sm" onclick={() => (loopCount = Math.max(loopCount - 1, 1))}>
-								<svg width="14" height="9" viewBox="0 0 14 9" fill="none"><path d="M1 1L7 7L13 1" stroke="#797979" stroke-width="2" stroke-linecap="round"/></svg>
+								<svg width="14" height="9" viewBox="0 0 14 9" fill="none"><path d="M1 1L7 7L13 1" style="stroke: var(--base_2)" stroke-width="2" stroke-linecap="round"/></svg>
 							</button>
 						</div>
 						<span class="sub-label">ループ回数</span>
@@ -82,7 +82,7 @@
 			<!-- Play button -->
 			<button class="play-btn" onclick={() => startTimer(workMinutes, restMinutes, loopCount)}>
 				<svg width="36" height="36" viewBox="0 0 36 36" fill="none">
-					<polygon points="10,5 31,18 10,31" fill="#f7f7f7"/>
+					<polygon points="10,5 31,18 10,31" style="fill: var(--base_1)"/>
 				</svg>
 			</button>
 
@@ -100,7 +100,7 @@
 			<div class="flex ai:center jc:center gap:20px">
 				<span
 					class="status-text"
-					style="color: {$pomodoroPhase === 'work' ? '#e68938' : '#50c2fb'};"
+					style="color: {$pomodoroPhase === 'work' ? 'var(--orange_1)' : 'var(--blue_1)'};"
 				>
 					{$pomodoroPhase === 'work' ? '作業中' : '休憩中'}
 				</span>
@@ -118,7 +118,7 @@
 				<!-- Stop -->
 				<button class="ctrl-btn" style="width: 101px;" onclick={stopTimer}>
 					<svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-						<rect x="4" y="4" width="20" height="20" rx="2" fill="#f7f7f7"/>
+						<rect x="4" y="4" width="20" height="20" rx="2" style="fill: var(--base_1)"/>
 					</svg>
 				</button>
 
@@ -126,12 +126,12 @@
 				<button class="ctrl-btn" style="width: 130px;" onclick={togglePause}>
 					{#if $isPaused}
 						<svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-							<polygon points="7,3 25,14 7,25" fill="#f7f7f7"/>
+							<polygon points="7,3 25,14 7,25" style="fill: var(--base_1)"/>
 						</svg>
 					{:else}
 						<svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-							<rect x="5" y="4" width="7" height="20" rx="2" fill="#f7f7f7"/>
-							<rect x="16" y="4" width="7" height="20" rx="2" fill="#f7f7f7"/>
+							<rect x="5" y="4" width="7" height="20" rx="2" style="fill: var(--base_1)"/>
+							<rect x="16" y="4" width="7" height="20" rx="2" style="fill: var(--base_1)"/>
 						</svg>
 					{/if}
 				</button>
@@ -139,8 +139,8 @@
 				<!-- Skip -->
 				<button class="ctrl-btn" style="width: 130px;" onclick={skipInterval}>
 					<svg width="32" height="28" viewBox="0 0 32 28" fill="none">
-						<polygon points="4,3 21,14 4,25" fill="#f7f7f7"/>
-						<rect x="24" y="3" width="5" height="22" rx="2" fill="#f7f7f7"/>
+						<polygon points="4,3 21,14 4,25" style="fill: var(--base_1)"/>
+						<rect x="24" y="3" width="5" height="22" rx="2" style="fill: var(--base_1)"/>
 					</svg>
 				</button>
 			</div>
@@ -190,7 +190,7 @@
 	.work-num {
 		font-size: 7.5rem;
 		font-weight: 600;
-		color: #f7f7f7;
+		color: var(--base_1);
 		line-height: 1;
 		letter-spacing: -0.02em;
 	}
@@ -199,7 +199,7 @@
 	.sub-num {
 		font-size: 3.75rem;
 		font-weight: 600;
-		color: #797979;
+		color: var(--base_2);
 		line-height: 1;
 	}
 
@@ -207,7 +207,7 @@
 	.ctrl-label {
 		font-size: 1rem;
 		font-weight: 700;
-		color: #797979;
+		color: var(--base_2);
 		margin-top: 6px;
 		white-space: nowrap;
 	}
@@ -215,7 +215,7 @@
 	.sub-label {
 		font-size: 0.85rem;
 		font-weight: 700;
-		color: #5a5a5a;
+		color: var(--base_3);
 		white-space: nowrap;
 	}
 
@@ -272,14 +272,14 @@
 	.task-num {
 		font-size: 8rem;
 		font-weight: 700;
-		color: #df4242;
+		color: var(--red_1);
 		line-height: 1;
 	}
 
 	.task-label {
 		font-size: 2.4rem;
 		font-weight: 700;
-		color: #797979;
+		color: var(--base_2);
 		letter-spacing: 0.1em;
 		margin-top: 4px;
 	}
@@ -300,20 +300,20 @@
 	.progress-cur {
 		font-size: 2.75rem;
 		font-weight: 600;
-		color: #f7f7f7;
+		color: var(--base_1);
 	}
 
 	.progress-sep {
 		font-size: 1.8rem;
 		font-weight: 500;
-		color: #797979;
+		color: var(--base_2);
 	}
 
 	/* Timer display */
 	.timer-display {
 		font-size: 5.5rem;
 		font-weight: 600;
-		color: #f7f7f7;
+		color: var(--base_1);
 		letter-spacing: 0.02em;
 		font-family: 'Reddit Sans', sans-serif;
 	}

@@ -17,7 +17,7 @@
 			stroke="none"
 		/>
 
-		<text font-size="4" fill="#888">
+		<text font-size="4" style="fill: var(--base_2)">
 			<textPath
 				href="#arcPath"
 				class="font-weight:700"
@@ -36,7 +36,7 @@
 					href="#arcPath"
 					startOffset="75%"
 					text-anchor="middle"
-					fill={$pomodoroPhase === 'work' ? '#e68938' : '#50c2fb'}
+					style="fill: {$pomodoroPhase === 'work' ? 'var(--orange_1)' : 'var(--blue_1)'}"
 				>
 					{$pomodoroTimeDisplay}
 				</textPath>

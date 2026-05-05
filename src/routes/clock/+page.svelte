@@ -8,7 +8,7 @@
 
 	onMount(() => {
 		if (typeof window !== "undefined") {
-			window.document.body.style.backgroundColor = "#2f2f2f"
+			window.document.body.style.backgroundColor = 'var(--base_5)'
 		}
 		const tick = () => {
 			now = new Date();
@@ -38,7 +38,7 @@
 	const numerals = Array.from({ length: 12 }, (_, i) => i + 1);
 </script>
 
-<div class="rel w:full h:full r:full bg:#2f2f2f" aria-label="analog clock">
+<div class="rel w:full h:full r:full bg:$(base_5)" aria-label="analog clock">
 	{#each numerals as n (n)}
 		<div
 			class="numeral abs top:50% left:50% w:fit h:fit grid place-items:center f:4rem line-h:1em font-weight:700 user-select:none fg:#424242"
@@ -63,18 +63,18 @@
 	></div>
 
 	<div
-		class="abs top:50% left:50% translate(-50%,-50%) w:368px square r:50% bg:#161616 z:5 flex flex:column ai:center jc:center gap:8px"
+		class="abs top:50% left:50% translate(-50%,-50%) w:368px square r:50% bg:$(base_6) z:5 flex flex:column ai:center jc:center gap:8px"
 	>
 		{#if $pomodoroPhase !== 'idle'}
 			<div class="pomodoro-badge">
-				<span class="pomodoro-status" style="color: {$pomodoroPhase === 'work' ? '#e68938' : '#50c2fb'};">
+				<span class="pomodoro-status" style="color: {$pomodoroPhase === 'work' ? 'var(--orange_1)' : 'var(--blue_1)'};">
 					{$pomodoroPhase === 'work' ? '作業中' : '休憩中'}
 				</span>
 				<span class="pomodoro-time">{$pomodoroTimeDisplay}</span>
 			</div>
 		{:else}
 			<div class="flex flex:column gap:6px ai:center">
-				<span class="f:2.5rem font-weight:500 ls:0.05em fg:#F7F7F7">{hh}:{mm}</span>
+				<span class="f:2.5rem font-weight:500 ls:0.05em fg:$(base_1)">{hh}:{mm}</span>
 				<span class="f:1.2rem font-weight:500 fg:#777676">{mo}月{d}日 ({week[wd]})</span>
 			</div>
 		{/if}
@@ -123,7 +123,7 @@
 		justify-content: center;
 		width: 206px;
 		height: 79px;
-		background: #2f2f2f;
+		background: var(--base_5);
 		border-radius: 54px;
 		gap: 2px;
 	}
@@ -137,7 +137,7 @@
 	.pomodoro-time {
 		font-size: 2.25rem;
 		font-weight: 600;
-		color: #f7f7f7;
+		color: var(--base_1);
 		line-height: 1;
 		font-family: 'Reddit Sans', sans-serif;
 	}

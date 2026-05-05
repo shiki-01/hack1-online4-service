@@ -98,7 +98,7 @@
 			gsap.set(drum, { rotationX: 0 });
 		}
 		if (typeof window !== "undefined") {
-			window.document.body.style.backgroundColor = "#161616"
+			window.document.body.style.backgroundColor = 'var(--base_6)'
 		}
 	});
 
