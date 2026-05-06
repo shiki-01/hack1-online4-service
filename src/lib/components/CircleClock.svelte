@@ -4,12 +4,14 @@
 	const now = new Date();
 	const dateStr = `${now.getMonth() + 1}月${now.getDate()}日 (${'日月火水木金土'[now.getDay()]})`;
 	const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+	let { isPomodoro = false }: { isPomodoro?: boolean } = $props();
 </script>
 
 <div
 	class="abs left:50% top:50% z:10 pointer-events:none flex flex:column ai:center jc:center translate(-50%,-50%) w:770px square"
 >
-	<svg viewBox="0 0 100 100" class="rotate(-90deg)">
+	<svg viewBox="0 0 100 100" class="rotate({$pomodoroPhase !== 'idle' && !isPomodoro ? '-105' : '-90'}deg)">
 		<path
 			id="arcPath"
 			d="M 10 50 A 40 40 0 1 1 90 50 A 40 40 0 1 1 10 50"
@@ -17,7 +19,7 @@
 			stroke="none"
 		/>
 
-		<text font-size="4" style="fill: var(--base_2)">
+		<text font-size="4" class="fill:base-2">
 			<textPath
 				href="#arcPath"
 				class="font-weight:700"
@@ -30,13 +32,12 @@
 			</textPath>
 		</text>
 
-		{#if $pomodoroPhase !== 'idle'}
-			<text font-size="4" font-weight="700">
+		{#if $pomodoroPhase !== 'idle' && !isPomodoro}
+			<text font-size="4" font-weight="700" class="fill:{$pomodoroPhase === 'work' ? 'orange-1' : 'blue-1'}">
 				<textPath
 					href="#arcPath"
-					startOffset="75%"
+					startOffset="62%"
 					text-anchor="middle"
-					style="fill: {$pomodoroPhase === 'work' ? 'var(--orange_1)' : 'var(--blue_1)'}"
 				>
 					{$pomodoroTimeDisplay}
 				</textPath>

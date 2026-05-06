@@ -27,4 +27,5 @@ body {
 	overflow: hidden;
 	-webkit-font-smoothing: antialiased;
 	touch-action: none;
+  background-color: #4D4D4D;
 }

@@ -7,8 +7,8 @@
 	let frameId: number | undefined;
 
 	onMount(() => {
-		if (typeof window !== "undefined") {
-			window.document.body.style.backgroundColor = 'var(--base_5)'
+		if (typeof window !== 'undefined') {
+			window.document.body.className = 'bg:background';
 		}
 		const tick = () => {
 			now = new Date();
@@ -38,7 +38,7 @@
 	const numerals = Array.from({ length: 12 }, (_, i) => i + 1);
 </script>
 
-<div class="rel w:full h:full r:full bg:$(base_5)" aria-label="analog clock">
+<div class="rel w:full h:full r:full bg:base-5" aria-label="analog clock">
 	{#each numerals as n (n)}
 		<div
 			class="numeral abs top:50% left:50% w:fit h:fit grid place-items:center f:4rem line-h:1em font-weight:700 user-select:none fg:#424242"
@@ -63,18 +63,18 @@
 	></div>
 
 	<div
-		class="abs top:50% left:50% translate(-50%,-50%) w:368px square r:50% bg:$(base_6) z:5 flex flex:column ai:center jc:center gap:8px"
+		class="abs top:50% left:50% translate(-50%,-50%) w:368px square r:50% bg:base-6 z:5 flex flex:column ai:center jc:center gap:8px"
 	>
 		{#if $pomodoroPhase !== 'idle'}
-			<div class="pomodoro-badge">
-				<span class="pomodoro-status" style="color: {$pomodoroPhase === 'work' ? 'var(--orange_1)' : 'var(--blue_1)'};">
+			<div class="flex flex:column ai:center jc:center w:206px h:79px bg:base-5 r:54px gap:2px">
+				<span class="f:1.4rem font-weight:700 line-h:1 fg:{$pomodoroPhase === 'work' ? 'orange-1' : 'blue-1'}">
 					{$pomodoroPhase === 'work' ? '作業中' : '休憩中'}
 				</span>
-				<span class="pomodoro-time">{$pomodoroTimeDisplay}</span>
+				<span class="f:2.3rem font-weight:600 fg:base-1 line-h:1 font-family:reddit-sans,sans-serif">{$pomodoroTimeDisplay}</span>
 			</div>
 		{:else}
 			<div class="flex flex:column gap:6px ai:center">
-				<span class="f:2.5rem font-weight:500 ls:0.05em fg:$(base_1)">{hh}:{mm}</span>
+				<span class="f:2.5rem font-weight:500 ls:0.05em fg:base-1">{hh}:{mm}</span>
 				<span class="f:1.2rem font-weight:500 fg:#777676">{mo}月{d}日 ({week[wd]})</span>
 			</div>
 		{/if}
@@ -114,31 +114,5 @@
 		top: 0;
 		bottom: 200px;
 		border-radius: 999px;
-	}
-
-	.pomodoro-badge {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		width: 206px;
-		height: 79px;
-		background: var(--base_5);
-		border-radius: 54px;
-		gap: 2px;
-	}
-
-	.pomodoro-status {
-		font-size: 1.375rem;
-		font-weight: 700;
-		line-height: 1;
-	}
-
-	.pomodoro-time {
-		font-size: 2.25rem;
-		font-weight: 600;
-		color: var(--base_1);
-		line-height: 1;
-		font-family: 'Reddit Sans', sans-serif;
 	}
 </style>

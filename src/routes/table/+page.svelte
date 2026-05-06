@@ -97,8 +97,8 @@
 			currentRotationX = 0;
 			gsap.set(drum, { rotationX: 0 });
 		}
-		if (typeof window !== "undefined") {
-			window.document.body.style.backgroundColor = 'var(--base_6)'
+		if (typeof window !== 'undefined') {
+			window.document.body.className = 'bg:background';
 		}
 	});
 
@@ -155,7 +155,7 @@
 </script>
 
 <div
-	class="rel w:full h:full flex flex:column ai:center jc:center overflow:hidden"
+	class="rel w:full h:full flex flex:column ai:center jc:center bg:base-5 overflow:hidden"
 	tabindex="0"
 	role="button"
 	style="touch-action: none"
@@ -174,7 +174,7 @@
 				{@const angle = i * CARD_ANGLE}
 				{@const active = i === currentIndex}
 				<div
-					class="backface abs top:0 left:0 w:stretch h:stretch"
+					class="backface abs top:0 left:0 w:stretch h:stretch pointer-events:auto"
 					role="button"
 					tabindex={active ? 0 : -1}
 					style="transform: rotateX({-angle}deg) translateZ({CYLINDER_R}px);"

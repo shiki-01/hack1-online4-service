@@ -69,8 +69,8 @@
 
 	onMount(() => {
 		if (!canvas) return;
-		if (typeof window !== "undefined") {
-			window.document.body.style.backgroundColor = 'var(--base_6)'
+		if (typeof window !== 'undefined') {
+			window.document.body.className = 'bg:background';
 		}
 
 		const tasks = get(pendingTasks);
@@ -259,13 +259,13 @@
 	});
 </script>
 
-<div class="abs inset:0 flex ai:center jc:center">
-	<canvas bind:this={canvas} class="w:full h:full r:50% bg:$(base_5)"></canvas>
+<div class="abs inset:0 flex ai:center bg:base-5 jc:center">
+	<canvas bind:this={canvas} class="w:full h:full r:50% bg:base-6"></canvas>
 
 	<CircleClock />
 
 	<div class="abs left:50% bottom:20px z:10 pointer-events:none flex flex:column ai:center jc:center translateX(-50%)">
-		<span class="f:6rem font-weight:700 fg:$(base_1) line-h:1">{$pendingTasks.length}</span>
-		<span class="f:1.6rem font-weight:700 fg:$(base_2) text-transform:uppercase ls:0.1em">Tasks</span>
+		<span class="f:6rem font-weight:700 fg:base-1 line-h:1">{$pendingTasks.length}</span>
+		<span class="f:1.6rem font-weight:700 fg:base-2 text-transform:uppercase ls:0.1em">Tasks</span>
 	</div>
 </div>
