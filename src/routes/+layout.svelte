@@ -135,9 +135,33 @@
 	});
 
 	const customElementPairs = new Set([
-		'/clock→/table',
-		'/table→/clock'
+		'/clock→/table',    '/table→/clock',
+		'/pomodoro→/table', '/table→/pomodoro',
+		'/stack→/table',    '/table→/stack',
+		'/settings→/table', '/table→/settings'
 	]);
+
+	// ─── ページペアごとの固有アニメーション ────────────────────────────────────
+	// 方向は各ペアに合わせて符号を固定済み。
+	// scale: out ならば縮小先、in ならば開始スケール（どちらも 1 = 変化なし）
+	const pairAnimations: Partial<Record<string, { in: TransitionParams; out: TransitionParams }>> = {
+		// pomodoro ↔ clock: タイマー→時計 スケール縮みながらスライド
+		'/pomodoro→/clock': { out: { x: -460, scale: 0.94, duration: 280, ease: EASE_IN  },
+		                      in:  { x:  560, scale: 0.96, duration: 420, ease: EASE_OUT } },
+		'/clock→/pomodoro': { out: { x:  460, scale: 0.94, duration: 280, ease: EASE_IN  },
+		                      in:  { x: -560, scale: 0.96, duration: 420, ease: EASE_OUT } },
+		// clock ↔ stack: 標準 S 字でなめらか
+		'/clock→/stack':    { out: { x: -500, duration: 300, ease: EASE_IN      },
+		                      in:  { x:  560, duration: 400, ease: EASE_STANDARD } },
+		'/stack→/clock':    { out: { x:  500, duration: 300, ease: EASE_IN      },
+		                      in:  { x: -560, duration: 400, ease: EASE_STANDARD } },
+		// stack ↔ settings: ゆったり丁寧
+		'/stack→/settings': { out: { x: -440, scale: 0.97, duration: 320, ease: EASE_IN  },
+		                      in:  { x:  560,               duration: 440, ease: EASE_OUT } },
+		'/settings→/stack': { out: { x:  440, scale: 0.97, duration: 320, ease: EASE_IN  },
+		                      in:  { x: -560,               duration: 440, ease: EASE_OUT } },
+	};
+	// ─────────────────────────────────────────────────────────────────────────
 
 	beforeNavigate(({ to, cancel }) => {
 		if (!to) return;
@@ -173,15 +197,10 @@
 		let dir: 1 | -1 = 1;
 
 		if (isVerticalRoot(toPath) && !isVerticalRoot(fromPath) && !isVerticalChild(fromPath)) {
-			// 垂直ルートへ入る（例: /stack → /table）
-			axis = 'y';
-			dir = 1;
+			axis = 'y'; dir = 1;
 		} else if (isVerticalRoot(fromPath) && !isVerticalRoot(toPath) && !isVerticalChild(toPath)) {
-			// 垂直ルートから出る（例: /table → /stack）
-			axis = 'y';
-			dir = -1;
+			axis = 'y'; dir = -1;
 		} else {
-			// 水平スライド
 			axis = 'x';
 			const toIsSub = isHorizontalChild(toPath) || isVerticalChild(toPath);
 			const fromIsSub = isHorizontalChild(fromPath) || isVerticalChild(fromPath);
@@ -193,17 +212,21 @@
 			} else {
 				const fromIdx = modes.findIndex((m) => fromPath === m.href);
 				const toIdx = modes.findIndex((m) => toPath === m.href);
-				if (fromIdx !== -1 && toIdx !== -1) {
-					dir = toIdx > fromIdx ? 1 : -1;
-				}
+				if (fromIdx !== -1 && toIdx !== -1) dir = toIdx > fromIdx ? 1 : -1;
 			}
 		}
 
-		// ルートごとのアニメーション設定を適用
-		const inAnim = routeAnimations[toPath] ?? defaultAnim;
-		const outAnim = routeAnimations[fromPath] ?? defaultAnim;
-		inParams = inAnim.in(axis, dir);
-		outParams = outAnim.out(axis, dir);
+		// ペア固有アニメーション → なければルート別 → なければデフォルト
+		const pairAnim = pairAnimations[pairKey];
+		if (pairAnim) {
+			inParams  = pairAnim.in;
+			outParams = pairAnim.out;
+		} else {
+			const inAnim  = routeAnimations[toPath]   ?? defaultAnim;
+			const outAnim = routeAnimations[fromPath]  ?? defaultAnim;
+			inParams  = inAnim.in(axis, dir);
+			outParams = outAnim.out(axis, dir);
+		}
 	});
 
 	function onPointerDown(e: PointerEvent) {

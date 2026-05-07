@@ -199,16 +199,31 @@
 
 	let exitTl: gsap.core.Timeline | undefined;
 
+	/** テーブルからの退場アニメーション（共通） */
 	$effect(() => {
 		const t = $pageTransition;
-		if (!t || t.from !== '/table' || t.to !== '/clock') return;
+		if (!t || t.from !== '/table') return;
 		if (!tableContentEl) return;
 
+		const toPath = t.to;
 		exitTl?.kill();
 		const tl = gsap.timeline({
 			onComplete: () => {
 				skipAnimationOnce.set(true);
-				goto(resolve('/clock'));
+				if (toPath === '/clock') {
+					goto(resolve('/clock'));
+				} else if (toPath === '/pomodoro') {
+					goto(resolve('/pomodoro'));
+				} else if (toPath === '/stack') {
+					goto(resolve('/stack'));
+				} else if (toPath === '/settings') {
+					goto(resolve('/settings'));
+				} else if (toPath === '/table') {
+					goto(resolve('/table'));
+				} else if (toPath.startsWith('/table/')) {
+					const id = decodeURIComponent(toPath.slice('/table/'.length));
+					goto(resolve('/table/[id]', { id }));
+				}
 			}
 		});
 		exitTl = tl;
@@ -219,23 +234,27 @@
 				scale: 0.9,
 				duration: 0.5,
 				ease: EASE_IN
-			})
+			});
 		}
-
 		const cardEls = tableContentEl.querySelectorAll('.card-inner');
 		if (cardEls.length) {
-			tl.to(cardEls, {
-				opacity: 0,
-				y: 18,
-				duration: 0.2,
-				ease: EASE_IN,
-				stagger: { amount: 0.15, from: 'center' }
-			}, 0);
+			tl.to(
+				cardEls,
+				{
+					opacity: 0,
+					y: -10,
+					duration: 0.2,
+					ease: EASE_IN,
+					stagger: { amount: 0.1, from: 'center' }
+				},
+				0
+			);
 		}
+		tl.to(tableContentEl, { scale: 1.06, duration: 0.28, ease: EASE_IN }, 0);
 
-		tl.to(tableContentEl, { scale: 1.14, duration: 0.3, ease: EASE_IN }, 0);
-
-		return () => { exitTl?.kill(); };
+		return () => {
+			exitTl?.kill();
+		};
 	});
 
 	onMount(() => {
@@ -248,32 +267,25 @@
 			window.document.body.className = 'bg:background';
 		}
 
+		// テーブルへのエントリーアニメーション（共通）
 		const t = get(pageTransition);
-		if (t?.from === '/clock' && tableContentEl && taskCountEl) {
+		if (t?.from && tableContentEl && taskCountEl) {
 			gsap.from(taskCountEl, {
 				y: 200,
 				scale: 0.9,
 				duration: 0.6,
 				ease: EASE_OUT
 			});
-
-			gsap.from(tableContentEl, {
-				scale: 1.14,
-				duration: 0.4,
-				ease: EASE_OUT,
-				delay: 0.06
-			});
-
-			// ドラム内のカードを順次フェードイン
+			gsap.from(tableContentEl, { scale: 1.06, opacity: 0, duration: 0.35, ease: EASE_OUT });
 			const cardEls = tableContentEl.querySelectorAll('.card-inner');
 			if (cardEls.length) {
 				gsap.from(cardEls, {
 					opacity: 0,
-					y: 18,
-					duration: 0.4,
+					y: 10,
+					duration: 0.3,
 					ease: EASE_OUT,
-					stagger: { amount: 0.2, from: 'center' },
-					delay: 0.1
+					stagger: { amount: 0.12, from: 'center' },
+					delay: 0.05
 				});
 			}
 		}
@@ -296,87 +308,91 @@
 	<CircleClock />
 
 	<div class="abs inset:0 flex ai:center jc:center" bind:this={tableContentEl}>
-	<div class="abs z:999 w:684px square top:50% left:50% translate(-50%,-50%) pointer-events:none">
-		<div class="rel w:full h:full">
-			<svg
-				class="abs z:0 top:50% left:50% translate(-50%,-50%)"
-				width="684"
-				height="684"
-				viewBox="0 0 684 684"
-			>
-				<path
-					class="stroke:base-4"
-					d="M 642 266 A 300 300 0 0 1 642 433"
-					fill="none"
-					stroke-linecap="round"
-					stroke-width="12"
-				/>
-			</svg>
-			<svg
-				class="abs z:1 top:50% left:50% translate(-50%,-50%)"
-				width="684"
-				height="684"
-				viewBox="0 0 684 684"
-			>
-				<path
-					class="stroke:base-1 ~stroke-dashoffset|200ms"
-					d="M 642 266 A 300 300 0 0 1 642 433"
-					fill="none"
-					stroke-linecap="round"
-					stroke-width="12"
-					stroke-dasharray="25 148"
-					stroke-dashoffset={-scrollProgress * 148}
-				/>
-			</svg>
-		</div>
-	</div>
-
-	<div
-		bind:this={taskCountEl}
-		class="abs top:60px left:50% translateX(-50%)|scale(0.76) flex flex:column ai:center jc:center"
-	>
-		<span
-			class="f:10rem font-weight:700 line-h:1 fg:{countColor($pendingTasks.length)} ~color|0.5s"
-		>
-			{$pendingTasks.length}
-		</span>
-		<span class="f:2rem font-weight:700 fg:#9D9D9D ls:0.1em">Tasks</span>
-	</div>
-
-	<div class="perspective w:300px h:300px flex ai:center jc:center" style="transform-style:preserve-3d">
-		<div bind:this={drum} class="w:stretch h:90px rel transform-style:preserve-3d">
-			{#each $pendingTasks as task, i (task.id)}
-				{@const angle = i * CARD_ANGLE}
-				{@const active = i === currentIndex}
-				<div
-					class="backface abs top:0 left:0 w:stretch h:stretch pointer-events:auto"
-					data-task-id={task.id}
-					role="button"
-					tabindex={active ? 0 : -1}
-					style="transform: rotateX({-angle}deg) translateZ({CYLINDER_R}px);"
-					onkeydown={(e) => e.preventDefault()}
+		<div class="abs z:999 w:684px square top:50% left:50% translate(-50%,-50%) pointer-events:none">
+			<div class="rel w:full h:full">
+				<svg
+					class="abs z:0 top:50% left:50% translate(-50%,-50%)"
+					width="684"
+					height="684"
+					viewBox="0 0 684 684"
 				>
+					<path
+						class="stroke:base-4"
+						d="M 642 266 A 300 300 0 0 1 642 433"
+						fill="none"
+						stroke-linecap="round"
+						stroke-width="12"
+					/>
+				</svg>
+				<svg
+					class="abs z:1 top:50% left:50% translate(-50%,-50%)"
+					width="684"
+					height="684"
+					viewBox="0 0 684 684"
+				>
+					<path
+						class="stroke:base-1 ~stroke-dashoffset|200ms"
+						d="M 642 266 A 300 300 0 0 1 642 433"
+						fill="none"
+						stroke-linecap="round"
+						stroke-width="12"
+						stroke-dasharray="25 148"
+						stroke-dashoffset={-scrollProgress * 148}
+					/>
+				</svg>
+			</div>
+		</div>
+
+		<div
+			bind:this={taskCountEl}
+			class="abs top:60px left:50% translateX(-50%)|scale(0.76) flex flex:column ai:center jc:center"
+		>
+			<span
+				class="f:10rem font-weight:700 line-h:1 fg:{countColor($pendingTasks.length)} ~color|0.5s"
+			>
+				{$pendingTasks.length}
+			</span>
+			<span class="f:2rem font-weight:700 fg:#9D9D9D ls:0.1em">Tasks</span>
+		</div>
+
+		<div
+			class="perspective w:300px h:300px flex ai:center jc:center"
+			style="transform-style:preserve-3d"
+		>
+			<div bind:this={drum} class="w:stretch h:90px rel transform-style:preserve-3d">
+				{#each $pendingTasks as task, i (task.id)}
+					{@const angle = i * CARD_ANGLE}
+					{@const active = i === currentIndex}
 					<div
-						class="card-inner w:full h:full bg:#1e1e1e r:12px p:0|20px flex flex:column ai:start jc:center gap:7px box-sizing:border-box"
-						class:active
+						class="backface abs top:0 left:0 w:stretch h:stretch pointer-events:auto"
+						data-task-id={task.id}
+						role="button"
+						tabindex={active ? 0 : -1}
+						style="transform: rotateX({-angle}deg) translateZ({CYLINDER_R}px);"
+						onkeydown={(e) => e.preventDefault()}
 					>
-						<span
-							class="card-title f:1rem line-h:1 fg:#cfcfcf font-weight:500 white-space:nowrap overflow:hidden text-overflow:ellipsis"
-							class:active>{task.title}</span
+						<div
+							class="card-inner w:full h:full bg:#1e1e1e r:12px p:0|20px flex flex:column ai:start jc:center gap:7px box-sizing:border-box"
+							class:active
 						>
-						<div class="flex ai:center gap:5px flex-shrink:0">
-							<span class="w:6px h:6px r:full" style="background:{deadlineColor(task.dueDate)}"
-							></span>
-							<span class="f:0.7rem font-weight:500" style="color:{deadlineColor(task.dueDate)}"
-								>{dueDateLabel(task.dueDate)}</span
+							<span
+								class="card-title f:1rem line-h:1 fg:#cfcfcf font-weight:500 white-space:nowrap overflow:hidden text-overflow:ellipsis"
+								class:active>{task.title}</span
 							>
+							<div class="flex ai:center gap:5px flex-shrink:0">
+								<span class="w:6px h:6px r:full" style="background:{deadlineColor(task.dueDate)}"
+								></span>
+								<span class="f:0.7rem font-weight:500" style="color:{deadlineColor(task.dueDate)}"
+									>{dueDateLabel(task.dueDate)}</span
+								>
+							</div>
 						</div>
 					</div>
-				</div>
-			{/each}
+				{/each}
+			</div>
 		</div>
 	</div>
-	</div><!-- /tableContentEl -->
+	<!-- /tableContentEl -->
 </div>
 
 <style>

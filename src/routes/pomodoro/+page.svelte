@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { get } from 'svelte/store';
 	import { pendingTasks } from '$lib/localTasks';
 	import {
 		pomodoroPhase,
@@ -13,20 +14,51 @@
 	} from '$lib/pomodoroStore';
 	import CircleClock from '$lib/components/CircleClock.svelte';
 	import TaskCount from '$lib/components/TaskCount.svelte';
+	import gsap from 'gsap';
+	import { goto } from '$app/navigation';
+	import { pageTransition, skipAnimationOnce } from '$lib/transitionStore';
+	import { EASE_OUT, EASE_IN } from '$lib/easings';
+	import { resolve } from '$app/paths';
 
 	let workMinutes = $state(25);
 	let restMinutes = $state(5);
 	let loopCount = $state(10);
 	let countMode = $state<'work' | 'rest'>('work');
 
+	let pageEl: HTMLDivElement | undefined = $state();
+
 	onMount(() => {
 		if (typeof window !== 'undefined') {
 			window.document.body.className = 'bg:background';
 		}
+		// /table → /pomodoro エントリーアニメーション
+		const t = get(pageTransition);
+		if (t?.from === '/table' && pageEl) {
+			gsap.from(pageEl, { scale: 0.94, opacity: 0, duration: 0.35, ease: EASE_OUT });
+		}
+	});
+
+	/** /pomodoro → /table 退場アニメーション */
+	$effect(() => {
+		const t = $pageTransition;
+		if (!t || t.from !== '/pomodoro' || t.to !== '/table') return;
+		if (!pageEl) return;
+
+		gsap.to(pageEl, {
+			scale: 0.94,
+			opacity: 0,
+			duration: 0.28,
+			ease: EASE_IN,
+			onComplete: () => {
+				skipAnimationOnce.set(true);
+				goto(resolve('/table'));
+			}
+		});
+		return () => { if (pageEl) gsap.killTweensOf(pageEl); };
 	});
 </script>
 
-<div class="rel w:full h:full r:full bg:base-5 overflow:hidden" aria-label="pomodoro timer">
+<div class="rel w:full h:full r:full bg:base-5 overflow:hidden" aria-label="pomodoro timer" bind:this={pageEl}>
 	<CircleClock isPomodoro={true} />
 
 	{#if $pomodoroPhase === 'idle'}

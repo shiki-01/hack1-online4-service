@@ -3,18 +3,19 @@ import gsap from 'gsap';
 export interface TransitionParams {
 	x?: number;
 	y?: number;
-	opacity?: number; // in: 開始 opacity（デフォルト 1 = フェードなし）/ out: 終了 opacity
+	opacity?: number;
+	scale?: number; // in: 開始スケール（1 = 変化なし）/ out: 終了スケール
 	duration?: number;
 	ease?: string;
 }
 
 /**
  * ページイン用カスタムトランジション（GSAP イージング使用）
- * 要素が (x, y, opacity) から (0, 0, 1) へ移動
+ * 要素が (x, y, opacity, scale) から (0, 0, 1, 1) へ移動
  */
 export function pageIn(
 	_node: Element,
-	{ x = 0, y = 0, opacity = 1, duration = 400, ease = 'power3.out' }: TransitionParams = {}
+	{ x = 0, y = 0, opacity = 1, scale = 1, duration = 400, ease = 'power3.out' }: TransitionParams = {}
 ) {
 	const easeFunc = gsap.parseEase(ease)!;
 	return {
@@ -23,20 +24,20 @@ export function pageIn(
 			const et = easeFunc(t);
 			const tx = x * (1 - et);
 			const ty = y * (1 - et);
-			// opacity: 開始値 opacity → 1
 			const op = opacity + (1 - opacity) * et;
-			return `opacity:${op};transform:translate(${tx}px,${ty}px)`;
+			const sc = scale + (1 - scale) * et; // scale → 1
+			return `opacity:${op};transform:translate(${tx}px,${ty}px) scale(${sc})`;
 		}
 	};
 }
 
 /**
  * ページアウト用カスタムトランジション（GSAP イージング使用）
- * 要素が (0, 0, 1) から (x, y, opacity) へ移動
+ * 要素が (0, 0, 1, 1) から (x, y, opacity, scale) へ移動
  */
 export function pageOut(
 	_node: Element,
-	{ x = 0, y = 0, opacity = 1, duration = 400, ease = 'power3.in' }: TransitionParams = {}
+	{ x = 0, y = 0, opacity = 1, scale = 1, duration = 400, ease = 'power3.in' }: TransitionParams = {}
 ) {
 	const easeFunc = gsap.parseEase(ease)!;
 	return {
@@ -46,9 +47,9 @@ export function pageOut(
 			const et = easeFunc(progress);
 			const tx = x * et;
 			const ty = y * et;
-			// opacity: 1 → 終了値 opacity
 			const op = 1 - (1 - opacity) * et;
-			return `opacity:${op};transform:translate(${tx}px,${ty}px)`;
+			const sc = 1 - (1 - scale) * et; // 1 → scale
+			return `opacity:${op};transform:translate(${tx}px,${ty}px) scale(${sc})`;
 		}
 	};
 }
