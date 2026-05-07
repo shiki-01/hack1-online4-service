@@ -267,7 +267,6 @@
 			window.document.body.className = 'bg:background';
 		}
 
-		// テーブルへのエントリーアニメーション（共通）
 		const t = get(pageTransition);
 		if (t?.from && tableContentEl && taskCountEl) {
 			gsap.from(taskCountEl, {

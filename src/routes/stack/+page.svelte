@@ -65,6 +65,8 @@
 
 	let canvas: HTMLCanvasElement | null = null;
 	let pageEl: HTMLDivElement | undefined = $state();
+	let taskCountEl: HTMLDivElement | undefined = $state();
+	let canvasWrap: HTMLDivElement | undefined = $state();
 	let bubbles: Bubble[] = [];
 	let tickerCallback: (() => void) | null = null;
 
@@ -77,11 +79,30 @@
 	$effect(() => {
 		const t = $pageTransition;
 		if (!t || t.from !== '/stack' || t.to !== '/table') return;
-		if (!pageEl) return;
+		const taskCountNode = taskCountEl?.firstElementChild as HTMLElement | null;
+		if (!pageEl || !taskCountNode || !canvas || !canvasWrap) return;
+
+		gsap.to(canvas, {
+			scale: 1.2,
+			duration: 0.3,
+			ease: EASE_IN
+		});
+
+		gsap.to(canvasWrap, {
+			width: 200,
+			height: 200,
+			duration: 0.3,
+			ease: EASE_IN
+		});
+
+		gsap.to(taskCountNode, {
+			y: -400,
+			duration: 0.3,
+			ease: EASE_IN
+		});
 
 		gsap.to(pageEl, {
-			scale: 0.94,
-			opacity: 0,
+			scale: 1,
 			duration: 0.28,
 			ease: EASE_IN,
 			onComplete: () => {
@@ -89,7 +110,9 @@
 				goto(resolve('/table'));
 			}
 		});
-		return () => { if (pageEl) gsap.killTweensOf(pageEl); };
+		return () => {
+			if (pageEl) gsap.killTweensOf(pageEl);
+		};
 	});
 
 	onMount(() => {
@@ -99,8 +122,32 @@
 		}
 		// /table → /stack エントリーアニメーション
 		const transition = get(pageTransition);
-		if (transition?.from === '/table' && pageEl) {
-			gsap.from(pageEl, { scale: 0.94, opacity: 0, duration: 0.35, ease: EASE_OUT });
+		const taskCountNode = taskCountEl?.firstElementChild as HTMLElement | null;
+		if (transition?.from === '/table' && pageEl && taskCountNode && canvas && canvasWrap) {
+			gsap.from(canvasWrap, {
+				width: 200,
+				height: 200,
+				duration: 0.3,
+				ease: EASE_OUT
+			});
+
+			gsap.from(canvas, {
+				scale: 1.2,
+				duration: 0.3,
+				ease: EASE_OUT
+			});
+
+			gsap.from(taskCountNode, {
+				y: -400,
+				duration: 0.3,
+				ease: EASE_OUT
+			});
+
+			gsap.from(pageEl, {
+				scale: 1,
+				duration: 0.35,
+				ease: EASE_OUT
+			});
 		}
 
 		const tasks = get(pendingTasks);
@@ -290,9 +337,16 @@
 </script>
 
 <div class="abs inset:0 flex ai:center bg:base-5 jc:center bg:base-6" bind:this={pageEl}>
-	<canvas bind:this={canvas} class="w:full h:full r:50% bg:base-5"></canvas>
+	<div bind:this={canvasWrap} class="w:564px h:564px rel overflow:hidden r:50%">
+		<canvas
+			bind:this={canvas}
+			class="bg:base-5 abs top:50% left:50% translate(-50%,-50%) w:560px h:560px max-w:none max-h:none block"
+		></canvas>
+	</div>
 
 	<CircleClock />
 
-	<TaskCount length={$pendingTasks.length} isChangeColor={false} />
+	<div bind:this={taskCountEl}>
+		<TaskCount length={$pendingTasks.length} isChangeColor={false} />
+	</div>
 </div>

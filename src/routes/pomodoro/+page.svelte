@@ -26,6 +26,8 @@
 	let countMode = $state<'work' | 'rest'>('work');
 
 	let pageEl: HTMLDivElement | undefined = $state();
+	let clockEl: HTMLDivElement | undefined = $state();
+	let taskCountEl: HTMLDivElement | undefined = $state();
 
 	onMount(() => {
 		if (typeof window !== 'undefined') {
@@ -33,8 +35,24 @@
 		}
 		// /table → /pomodoro エントリーアニメーション
 		const t = get(pageTransition);
-		if (t?.from === '/table' && pageEl) {
-			gsap.from(pageEl, { scale: 0.94, opacity: 0, duration: 0.35, ease: EASE_OUT });
+		const taskCountNode = taskCountEl?.firstElementChild as HTMLElement | null;
+		if (t?.from === '/table' && pageEl && clockEl && taskCountNode) {
+			gsap.from(taskCountNode, {
+				y: -400,
+				duration: 0.3,
+				ease: EASE_OUT
+			});
+			gsap.from(clockEl, {
+				scale: 0.9,
+				duration: 0.3,
+				ease: EASE_OUT
+			});
+			gsap.from(pageEl, {
+				w: 720,
+				opacity: 0,
+				duration: 0.35,
+				ease: EASE_OUT
+			});
 		}
 	});
 
@@ -42,11 +60,23 @@
 	$effect(() => {
 		const t = $pageTransition;
 		if (!t || t.from !== '/pomodoro' || t.to !== '/table') return;
-		if (!pageEl) return;
+		const taskCountNode = taskCountEl?.firstElementChild as HTMLElement | null;
+		if (!pageEl || !clockEl || !taskCountNode) return;
+
+		gsap.to(taskCountNode, {
+			y: -400,
+			duration: 0.3,
+			ease: EASE_IN
+		});
+
+		gsap.to(clockEl, {
+			scale: 0.9,
+			duration: 0.28,
+			ease: EASE_IN
+		});
 
 		gsap.to(pageEl, {
-			scale: 0.94,
-			opacity: 0,
+			width: 720,
 			duration: 0.28,
 			ease: EASE_IN,
 			onComplete: () => {
@@ -54,18 +84,21 @@
 				goto(resolve('/table'));
 			}
 		});
-		return () => { if (pageEl) gsap.killTweensOf(pageEl); };
+		return () => {
+			if (pageEl) gsap.killTweensOf(pageEl);
+		};
 	});
 </script>
 
-<div class="rel w:full h:full r:full bg:base-5 overflow:hidden" aria-label="pomodoro timer" bind:this={pageEl}>
+<div class="rel w:full h:full r:full bg:base-5 overflow:hidden" aria-label="pomodoro timer">
 	<CircleClock isPomodoro={true} />
 
 	{#if $pomodoroPhase === 'idle'}
 		<div
+			bind:this={pageEl}
 			class="abs top:50% left:50% translate(-50%,-50%) w:422px square r:999px bg:base-6 inset:0 flex flex:column ai:center jc:center gap:20px"
 		>
-			<div class="flex rel flex:column ai:center jc:center">
+			<div bind:this={clockEl} class="flex rel flex:column ai:center jc:center">
 				<div class="flex flex:row gap:20px">
 					<button
 						aria-label="btn"
@@ -263,5 +296,7 @@
 		</div>
 	{/if}
 
-	<TaskCount length={$pendingTasks.length} />
+	<div bind:this={taskCountEl}>
+		<TaskCount length={$pendingTasks.length} />
+	</div>
 </div>
