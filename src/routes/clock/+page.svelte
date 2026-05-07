@@ -95,7 +95,7 @@
 			tl.to(
 				taskCountEl,
 				{
-					scale: 0.8,
+					scale: 0.9,
 					y: -20,
 					duration: 0.4,
 					ease: 'power3.in'

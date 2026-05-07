@@ -201,6 +201,7 @@
 		if (t?.from === '/clock' && tableContentEl && taskCountEl) {
 			gsap.from(taskCountEl, {
 				y: 200,
+				scale: 0.9,
 				duration: 0.4,
 				ease: 'power3.out',
 			})
