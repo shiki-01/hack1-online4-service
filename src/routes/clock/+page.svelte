@@ -2,9 +2,19 @@
 	import { onMount } from 'svelte';
 	import { pendingTasks, countColor } from '$lib/localTasks';
 	import { pomodoroPhase, pomodoroTimeDisplay } from '$lib/pomodoroStore';
+	import gsap from 'gsap';
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
+	import { pageTransition, skipAnimationOnce } from '$lib/transitionStore';
 
 	let now = $state(new Date());
 	let frameId: number | undefined;
+
+	let clockOuter: HTMLDivElement | undefined = $state();
+	let numsWrap: HTMLDivElement | undefined = $state();
+	let clockWrap: HTMLDivElement | undefined = $state();
+	let centerCircleEl: HTMLDivElement | undefined = $state();
+	let taskCountEl: HTMLDivElement | undefined = $state();
 
 	onMount(() => {
 		if (typeof window !== 'undefined') {
@@ -17,6 +27,85 @@
 		frameId = requestAnimationFrame(tick);
 		return () => {
 			if (frameId !== undefined) cancelAnimationFrame(frameId);
+		};
+	});
+
+	let exitTl: gsap.core.Timeline | undefined;
+
+	$effect(() => {
+		const t = $pageTransition;
+		if (!t || t.from !== '/clock' || t.to !== '/table') return;
+		if (!clockOuter) return;
+
+		const handEls = clockOuter.querySelectorAll('.hand');
+
+		exitTl?.kill();
+		const tl = gsap.timeline({
+			onComplete: () => {
+				skipAnimationOnce.set(true);
+				goto(resolve('/table'));
+			}
+		});
+		exitTl = tl;
+
+		if (numsWrap) {
+			tl.to(numsWrap, {
+				scale: 2,
+				duration: 0.4,
+				ease: 'power2.in',
+				stagger: { amount: 0.14, from: 'random' }
+			});
+		}
+
+		tl.to(
+			handEls,
+			{
+				scale: 1.6,
+				duration: 0.3,
+				ease: 'power3.in'
+			},
+			0
+		);
+
+		if (centerCircleEl) {
+			tl.to(
+				centerCircleEl,
+				{
+					width: 720,
+					duration: 0.4,
+					ease: 'power3.in'
+				},
+				0
+			);
+		}
+
+		if (clockWrap) {
+			tl.to(
+				clockWrap,
+				{
+					opacity: 0,
+					duration: 0.4,
+					ease: 'power3.in'
+				},
+				0
+			);
+		}
+
+		if (taskCountEl) {
+			tl.to(
+				taskCountEl,
+				{
+					scale: 0.8,
+					y: -20,
+					duration: 0.4,
+					ease: 'power3.in'
+				},
+				0
+			);
+		}
+
+		return () => {
+			exitTl?.kill();
 		};
 	});
 
@@ -38,16 +127,18 @@
 	const numerals = Array.from({ length: 12 }, (_, i) => i + 1);
 </script>
 
-<div class="rel w:full h:full r:full bg:base-5" aria-label="analog clock">
-	{#each numerals as n (n)}
-		<div
-			class="numeral abs top:50% left:50% w:fit h:fit grid place-items:center f:4rem line-h:1em font-weight:700 user-select:none fg:#424242"
-			class:active={h12 === n}
-			style="--angle: {n * 30}deg;"
-		>
-			{n}
-		</div>
-	{/each}
+<div class="rel w:full h:full r:full bg:base-5" aria-label="analog clock" bind:this={clockOuter}>
+	<div class="w:100% h:100%" bind:this={numsWrap}>
+		{#each numerals as n (n)}
+			<div
+				class="numeral abs top:50% left:50% w:fit h:fit grid place-items:center f:4rem line-h:1em font-weight:700 user-select:none fg:#424242"
+				class:active={h12 === n}
+				style="--angle: {n * 30}deg;"
+			>
+				{n}
+			</div>
+		{/each}
+	</div>
 
 	<div
 		class="hand z:3 w:8px h:260px bg:#F1F1F1::before"
@@ -64,9 +155,13 @@
 
 	<div
 		class="abs top:50% left:50% translate(-50%,-50%) w:368px square r:50% bg:base-6 z:5 flex flex:column ai:center jc:center gap:8px"
+		bind:this={centerCircleEl}
 	>
 		{#if $pomodoroPhase !== 'idle'}
-			<div class="flex flex:column ai:center jc:center w:206px h:79px bg:base-5 r:54px gap:2px">
+			<div
+				class="flex flex:column ai:center jc:center w:206px h:79px bg:base-5 r:54px gap:2px"
+				bind:this={clockWrap}
+			>
 				<span
 					class="f:1.4rem font-weight:700 line-h:1 fg:{$pomodoroPhase === 'work'
 						? 'orange-1'
@@ -79,19 +174,19 @@
 				>
 			</div>
 		{:else}
-			<div class="flex flex:column gap:6px ai:center">
+			<div class="flex flex:column gap:6px ai:center" bind:this={clockWrap}>
 				<span class="f:2.5rem font-weight:500 ls:0.05em fg:base-1">{hh}:{mm}</span>
 				<span class="f:1.2rem font-weight:500 fg:#777676">{mo}月{d}日 ({week[wd]})</span>
 			</div>
 		{/if}
-		<div class="flex ai:baseline gap:8px">
+		<div class="flex flex:column ai:center gap:8px" bind:this={taskCountEl}>
 			<span
 				class="f:10rem font-weight:700 line-h:1 fg:{countColor($pendingTasks.length)} ~color|0.5s"
 			>
 				{$pendingTasks.length}
 			</span>
+			<span class="f:2rem font-weight:700 fg:#9D9D9D ls:0.1em">Tasks</span>
 		</div>
-		<span class="f:2rem font-weight:700 fg:#9D9D9D ls:0.1em">Tasks</span>
 	</div>
 </div>
 

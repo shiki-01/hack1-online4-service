@@ -2,15 +2,19 @@
 	import { onMount, untrack } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import { pendingTasks, deadlineColor } from '$lib/localTasks';
+	import { pendingTasks, deadlineColor, countColor } from '$lib/localTasks';
 	import gsap from 'gsap';
 	import CircleClock from '$lib/components/CircleClock.svelte';
 	import { physicsRotation, physicsClickCount, modeSwitchEnabled } from '$lib/physicsController';
 	import { get } from 'svelte/store';
+	import { pageTransition } from '$lib/transitionStore';
 
 	const IS_PHYSICS = import.meta.env.VITE_IS_PHYSICS === 'true';
 	const ITEM_DEG = 30;
 
+	let tablePageEl: HTMLDivElement | undefined = $state();
+	let tableContentEl: HTMLDivElement | undefined = $state();
+	let taskCountEl: HTMLDivElement | undefined = $state();
 	let itemBaseRotation = 0;
 	let prevClickCount = get(physicsClickCount);
 	let drum = $state<HTMLDivElement | null>(null);
@@ -107,14 +111,26 @@
 
 	function onPointerUp(e: PointerEvent) {
 		if (!isDragging || e.pointerId !== activePointerId) return;
+
+		const swipeDy = dragStartY - e.clientY; // 正 = 上スワイプ、負 = 下スワイプ
+
 		isDragging = false;
 		activePointerId = null;
 		(e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+
 		if (!didDrag && pointerStartTaskId) {
+			// タップ → タスク詳細へ
 			goto(resolve('/table/[id]', { id: pointerStartTaskId }));
+		} else if (didDrag && swipeDy < -80 && currentIndex === 0 && dragStartRotation === 0) {
+			// 先頭にいるときの大きな下スワイプ → /table を閉じて前のページへ戻る
+			e.stopPropagation();
+			history.back();
 		} else {
+			// 通常ドラッグ → カルーセルをスナップ、レイアウト側の誤検知を防ぐ
+			e.stopPropagation();
 			rotateTo(currentIndex);
 		}
+
 		didDrag = false;
 		pointerStartTaskId = null;
 	}
@@ -179,11 +195,43 @@
 		if (typeof window !== 'undefined') {
 			window.document.body.className = 'bg:background';
 		}
+
+		// /clock → /table 専用：手前から奥へ飛び込むエントリーアニメーション（CircleClock は除外）
+		const t = get(pageTransition);
+		if (t?.from === '/clock' && tableContentEl && taskCountEl) {
+			gsap.from(taskCountEl, {
+				y: 200,
+				duration: 0.4,
+				ease: 'power3.out',
+			})
+
+			// カード群：少し手前（scale 大）から奥（scale 1）へ収束
+			gsap.from(tableContentEl, {
+				scale: 1.14,
+				duration: 0.55,
+				ease: 'power3.out',
+				delay: 0.06
+			});
+
+			// ドラム内のカードを順次フェードイン
+			const cardEls = tableContentEl.querySelectorAll('.card-inner');
+			if (cardEls.length) {
+				gsap.from(cardEls, {
+					opacity: 0,
+					y: 18,
+					duration: 0.45,
+					ease: 'power2.out',
+					stagger: { amount: 0.2, from: 'center' },
+					delay: 0.1
+				});
+			}
+		}
 	});
 </script>
 
 <div
 	class="rel w:full h:full flex flex:column ai:center jc:center bg:base-6 overflow:hidden"
+	bind:this={tablePageEl}
 	tabindex="0"
 	role="button"
 	style="touch-action: none"
@@ -196,6 +244,7 @@
 >
 	<CircleClock />
 
+	<div class="abs inset:0 flex ai:center jc:center" bind:this={tableContentEl}>
 	<div class="abs z:999 w:684px square top:50% left:50% translate(-50%,-50%) pointer-events:none">
 		<div class="rel w:full h:full">
 			<svg
@@ -231,7 +280,19 @@
 		</div>
 	</div>
 
-	<div class="perspective w:300px h:300px flex ai:center jc:center">
+	<div
+		bind:this={taskCountEl}
+		class="abs top:60px left:50% translateX(-50%)|scale(0.76) flex flex:column ai:center jc:center"
+	>
+		<span
+			class="f:10rem font-weight:700 line-h:1 fg:{countColor($pendingTasks.length)} ~color|0.5s"
+		>
+			{$pendingTasks.length}
+		</span>
+		<span class="f:2rem font-weight:700 fg:#9D9D9D ls:0.1em">Tasks</span>
+	</div>
+
+	<div class="perspective w:300px h:300px flex ai:center jc:center" style="transform-style:preserve-3d">
 		<div bind:this={drum} class="w:stretch h:90px rel transform-style:preserve-3d">
 			{#each $pendingTasks as task, i (task.id)}
 				{@const angle = i * CARD_ANGLE}
@@ -264,6 +325,7 @@
 			{/each}
 		</div>
 	</div>
+	</div><!-- /tableContentEl -->
 </div>
 
 <style>

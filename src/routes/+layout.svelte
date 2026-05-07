@@ -1,8 +1,8 @@
 <script lang="ts">
 	import '@master/normal.css';
 	import '../app.css';
-	import { fly } from 'svelte/transition';
-	import { cubicOut } from 'svelte/easing';
+	import { pageIn, pageOut, type TransitionParams } from '$lib/transitions';
+	import { pageTransition, skipAnimationOnce } from '$lib/transitionStore';
 	import { page } from '$app/state';
 	import { goto, beforeNavigate } from '$app/navigation';
 	import { resolve } from '$app/paths';
@@ -26,13 +26,16 @@
 
 	let { children } = $props();
 
-	let slideDir = $state(1);
 	let navOpen = $state(false);
 	let mainEl: HTMLElement | undefined = $state();
 	let modeSwitchBaseRotation = 0;
 	let modeSwitchBasePageIndex = 0;
 	let pointerStartX = 0;
 	let pointerStartY = 0;
+
+	// 遷移アニメーションパラメータ（ページごとに異なる値を設定可能）
+	let inParams = $state<TransitionParams>({ x: 560, duration: 380, ease: 'power3.out' });
+	let outParams = $state<TransitionParams>({ x: -560, duration: 380, ease: 'power3.in' });
 
 	onMount(() => {
 		if (!IS_PHYSICS) return;
@@ -51,13 +54,62 @@
 		return () => es.close();
 	});
 
+	// 水平スライドで移動するページ群
 	const modes = [
 		{ href: '/pomodoro' },
 		{ href: '/clock' },
 		{ href: '/stack' },
-		{ href: '/table' },
 		{ href: '/settings' }
 	] as const;
+
+	// 垂直スワイプ（下から上）で開くページ群
+	const verticalRoutes = ['/table'] as const;
+
+	// ─── ルートごとのアニメーション設定 ────────────────────────────────────
+	type AnimFn = (axis: 'x' | 'y', dir: 1 | -1) => TransitionParams;
+	type RouteAnim = { in: AnimFn; out: AnimFn };
+
+	// サブページなど未定義ルートのフォールバック
+	const defaultAnim: RouteAnim = {
+		in: (axis, dir) => ({
+			x: axis === 'x' ? dir * 560 : 0,
+			y: axis === 'y' ? dir * 560 : 0,
+			duration: 380,
+			ease: 'power3.out'
+		}),
+		out: (axis, dir) => ({
+			x: axis === 'x' ? -dir * 560 : 0,
+			y: axis === 'y' ? -dir * 560 : 0,
+			duration: 320,
+			ease: 'power3.in'
+		})
+	};
+
+	const routeAnimations: Partial<Record<string, RouteAnim>> = {
+		'/pomodoro': {
+			in:  (axis, dir) => ({ x: axis === 'x' ? dir * 560 : 0, y: axis === 'y' ? dir * 560 : 0, duration: 400, ease: 'power2.out' }),
+			out: (axis, dir) => ({ x: axis === 'x' ? -dir * 560 : 0, y: axis === 'y' ? -dir * 560 : 0, duration: 300, ease: 'power2.in' })
+		},
+		'/clock': {
+			in:  (axis, dir) => ({ x: axis === 'x' ? dir * 560 : 0, y: axis === 'y' ? dir * 560 : 0, duration: 380, ease: 'power3.out' }),
+			out: (axis, dir) => ({ x: axis === 'x' ? -dir * 560 : 0, y: axis === 'y' ? -dir * 560 : 0, duration: 300, ease: 'power3.in' })
+		},
+		'/stack': {
+			// バブル物理ページ：イン時に少しオーバーシュート
+			in:  (axis, dir) => ({ x: axis === 'x' ? dir * 560 : 0, y: axis === 'y' ? dir * 560 : 0, duration: 450, ease: 'back.out(0.8)' }),
+			out: (axis, dir) => ({ x: axis === 'x' ? -dir * 560 : 0, y: axis === 'y' ? -dir * 560 : 0, duration: 300, ease: 'power3.in' })
+		},
+		'/settings': {
+			in:  (axis, dir) => ({ x: axis === 'x' ? dir * 560 : 0, y: axis === 'y' ? dir * 560 : 0, duration: 380, ease: 'power2.out' }),
+			out: (axis, dir) => ({ x: axis === 'x' ? -dir * 560 : 0, y: axis === 'y' ? -dir * 560 : 0, duration: 300, ease: 'power2.in' })
+		},
+		// /table は常に下から上にイン、上から下にアウト（軸に関係なく）
+		'/table': {
+			in:  (_axis, dir) => ({ y: dir * 720, duration: 450, ease: 'power3.out' }),
+			out: (_axis, dir) => ({ y: dir * -720, duration: 380, ease: 'power3.in' })
+		}
+	};
+	// ─────────────────────────────────────────────────────────────────────────
 
 	const currentIndex = $derived(
 		modes.findIndex(
@@ -65,10 +117,15 @@
 		)
 	);
 
-	const isMainPage = $derived(modes.some((m) => page.url.pathname === m.href));
+	const isMainPage = $derived(
+		modes.some((m) => page.url.pathname === m.href) ||
+			verticalRoutes.some((r) => page.url.pathname === r)
+	);
 
 	const showPhysicsControls = $derived(
-		modes.some((m) => page.url.pathname === m.href || page.url.pathname.startsWith(m.href + '/'))
+		modes.some(
+			(m) => page.url.pathname === m.href || page.url.pathname.startsWith(m.href + '/')
+		) || verticalRoutes.some((r) => page.url.pathname === r || page.url.pathname.startsWith(r + '/'))
 	);
 
 	const isSubPage = $derived(showPhysicsControls && !isMainPage);
@@ -77,28 +134,75 @@
 		if (!isMainPage) navOpen = false;
 	});
 
-	beforeNavigate(({ to }) => {
+	const customElementPairs = new Set([
+		'/clock→/table'
+	]);
+
+	beforeNavigate(({ to, cancel }) => {
 		if (!to) return;
 		const toPath = to.url.pathname;
 		const fromPath = page.url.pathname;
-		const toIsSub =
-			!modes.some((m) => toPath === m.href) && modes.some((m) => toPath.startsWith(m.href + '/'));
-		const fromIsSub =
-			!modes.some((m) => fromPath === m.href) &&
-			modes.some((m) => fromPath.startsWith(m.href + '/'));
-		if (!fromIsSub && toIsSub) {
-			slideDir = 1;
+		const pairKey = `${fromPath}→${toPath}`;
+
+		if (customElementPairs.has(pairKey)) {
+			if (!get(skipAnimationOnce)) {
+				cancel();
+				pageTransition.set({ from: fromPath, to: toPath });
+				return;
+			}
+			skipAnimationOnce.set(false);
+			outParams = { x: 0, y: 0, duration: 30 };
+			inParams  = { x: 0, y: 0, duration: 30 };
+			pageTransition.set({ from: fromPath, to: toPath });
 			return;
 		}
-		if (fromIsSub && !toIsSub) {
-			slideDir = -1;
-			return;
+
+		// 通常遷移：遷移情報をストアにセット
+		pageTransition.set({ from: fromPath, to: toPath });
+
+		const isVerticalRoot = (p: string) => verticalRoutes.some((r) => p === r);
+		const isVerticalChild = (p: string) =>
+			!isVerticalRoot(p) && verticalRoutes.some((r) => p.startsWith(r + '/'));
+		const isHorizontalRoot = (p: string) => modes.some((m) => p === m.href);
+		const isHorizontalChild = (p: string) =>
+			!isHorizontalRoot(p) && modes.some((m) => p.startsWith(m.href + '/'));
+
+		// 遷移方向を決定
+		let axis: 'x' | 'y';
+		let dir: 1 | -1 = 1;
+
+		if (isVerticalRoot(toPath) && !isVerticalRoot(fromPath) && !isVerticalChild(fromPath)) {
+			// 垂直ルートへ入る（例: /stack → /table）
+			axis = 'y';
+			dir = 1;
+		} else if (isVerticalRoot(fromPath) && !isVerticalRoot(toPath) && !isVerticalChild(toPath)) {
+			// 垂直ルートから出る（例: /table → /stack）
+			axis = 'y';
+			dir = -1;
+		} else {
+			// 水平スライド
+			axis = 'x';
+			const toIsSub = isHorizontalChild(toPath) || isVerticalChild(toPath);
+			const fromIsSub = isHorizontalChild(fromPath) || isVerticalChild(fromPath);
+
+			if (!fromIsSub && toIsSub) {
+				dir = 1;
+			} else if (fromIsSub && !toIsSub) {
+				dir = -1;
+			} else {
+				const fromIdx = modes.findIndex((m) => fromPath === m.href);
+				const toIdx = modes.findIndex((m) => toPath === m.href);
+				if (fromIdx !== -1 && toIdx !== -1) {
+					dir = toIdx > fromIdx ? 1 : -1;
+				}
+			}
 		}
-		const fromIdx = modes.findIndex((m) => fromPath === m.href);
-		const toIdx = modes.findIndex((m) => toPath === m.href);
-		if (fromIdx !== -1 && toIdx !== -1) {
-			slideDir = toIdx > fromIdx ? 1 : -1;
-		}
+
+		// ルートごとのアニメーション設定を適用
+		const inAnim = routeAnimations[toPath] ?? defaultAnim;
+		const outAnim = routeAnimations[fromPath] ?? defaultAnim;
+		inParams = inAnim.in(axis, dir);
+		outParams = outAnim.out(axis, dir);
 	});
 
 	function onPointerDown(e: PointerEvent) {
@@ -109,8 +213,21 @@
 	function onPointerUp(e: PointerEvent) {
 		const dx = pointerStartX - e.clientX;
 		const dy = pointerStartY - e.clientY;
+		const absDx = Math.abs(dx);
+		const absDy = Math.abs(dy);
 
-		if (Math.abs(dx) <= Math.abs(dy) || Math.abs(dx) < 40) return;
+		// 垂直スワイプ
+		if (absDy > absDx && absDy >= 40) {
+			if (dy > 0 && !page.url.pathname.startsWith('/table') && !navOpen) {
+				// 上スワイプ → /table を開く
+				goto(resolve('/table'));
+			}
+			return;
+		}
+
+		// 水平スワイプ（/table では無効）
+		if (page.url.pathname.startsWith('/table')) return;
+		if (absDx < 40) return;
 
 		// 左端からの右スワイプでナビを開く
 		const mainRect = mainEl?.getBoundingClientRect();
@@ -130,7 +247,6 @@
 
 		const next = currentIndex + (dx > 0 ? 1 : -1);
 		if (next >= 0 && next < modes.length) {
-			slideDir = dx > 0 ? 1 : -1;
 			goto(resolve(modes[next].href));
 		}
 	}
@@ -155,7 +271,6 @@
 		const curIdx = currentIndex >= 0 ? currentIndex : 0;
 
 		if (newIndex !== curIdx) {
-			slideDir = newIndex > curIdx ? 1 : -1;
 			goto(resolve(modes[newIndex].href));
 		}
 	});
@@ -173,8 +288,8 @@
 		{#key page.url.pathname}
 			<div
 				class="abs inset:0 flex ai:center jc:center"
-				in:fly={{ x: slideDir * 560, duration: 380, easing: cubicOut }}
-				out:fly={{ x: -slideDir * 560, duration: 380, easing: cubicOut }}
+				in:pageIn={inParams}
+				out:pageOut={outParams}
 			>
 				{@render children?.()}
 			</div>
