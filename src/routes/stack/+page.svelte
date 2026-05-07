@@ -284,8 +284,6 @@
 			const a = (angleDeg * Math.PI) / 180;
 			const x1 = x + r * Math.cos(a);
 			const y1 = y + r * Math.sin(a);
-			const _x2 = x - r * Math.cos(a);
-			const _y2 = y - r * Math.sin(a);
 
 			ctx.beginPath();
 			ctx.moveTo(x1, y1);
@@ -310,14 +308,6 @@
 
 				drawHalfBubble(ctx, x, y, b.r, b.angle, b.colorA, b.colorB);
 
-				if (b.r >= 32) {
-					ctx.fillStyle = 'rgba(255,255,255,0.9)';
-					const fontSize = Math.max(9, Math.min(14, b.r * 0.28));
-					ctx.font = `600 ${fontSize}px Inter, sans-serif`;
-					ctx.textAlign = 'center';
-					ctx.textBaseline = 'middle';
-					//ctx.fillText(b.label, x, y);
-				}
 			}
 		}
 
