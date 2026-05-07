@@ -12,6 +12,7 @@
 		skipInterval
 	} from '$lib/pomodoroStore';
 	import CircleClock from '$lib/components/CircleClock.svelte';
+	import TaskCount from '$lib/components/TaskCount.svelte';
 
 	let workMinutes = $state(25);
 	let restMinutes = $state(5);
@@ -230,8 +231,5 @@
 		</div>
 	{/if}
 
-	<div class="abs left:50% bottom:20px z:10 translateX(-50%) flex flex:column ai:center line-h:1">
-		<span class="f:8rem font-weight:700 fg:red-1 line-h:1">{$pendingTasks.length}</span>
-		<span class="f:2.4rem font-weight:700 fg:base-2 ls:0.1em mt:4px">Tasks</span>
-	</div>
+	<TaskCount length={$pendingTasks.length} />
 </div>

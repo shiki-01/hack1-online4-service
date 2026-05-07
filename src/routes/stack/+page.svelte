@@ -5,6 +5,7 @@
 	import gsap from 'gsap';
 	import CircleClock from '$lib/components/CircleClock.svelte';
 	import { physicsRotation, modeSwitchEnabled } from '$lib/physicsController';
+	import TaskCount from '$lib/components/TaskCount.svelte';
 
 	const IS_PHYSICS = import.meta.env.VITE_IS_PHYSICS === 'true';
 
@@ -264,8 +265,5 @@
 
 	<CircleClock />
 
-	<div class="abs left:50% bottom:20px z:10 pointer-events:none flex flex:column ai:center jc:center translateX(-50%)">
-		<span class="f:6rem font-weight:700 fg:base-1 line-h:1">{$pendingTasks.length}</span>
-		<span class="f:1.6rem font-weight:700 fg:base-2 text-transform:uppercase ls:0.1em">Tasks</span>
-	</div>
+	<TaskCount length={$pendingTasks.length} isChangeColor={false} />
 </div>

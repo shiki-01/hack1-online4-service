@@ -67,10 +67,16 @@
 	>
 		{#if $pomodoroPhase !== 'idle'}
 			<div class="flex flex:column ai:center jc:center w:206px h:79px bg:base-5 r:54px gap:2px">
-				<span class="f:1.4rem font-weight:700 line-h:1 fg:{$pomodoroPhase === 'work' ? 'orange-1' : 'blue-1'}">
+				<span
+					class="f:1.4rem font-weight:700 line-h:1 fg:{$pomodoroPhase === 'work'
+						? 'orange-1'
+						: 'blue-1'}"
+				>
 					{$pomodoroPhase === 'work' ? '作業中' : '休憩中'}
 				</span>
-				<span class="f:2.3rem font-weight:600 fg:base-1 line-h:1 font-family:reddit-sans,sans-serif">{$pomodoroTimeDisplay}</span>
+				<span class="f:2.3rem font-weight:600 fg:base-1 line-h:1 font-family:reddit-sans,sans-serif"
+					>{$pomodoroTimeDisplay}</span
+				>
 			</div>
 		{:else}
 			<div class="flex flex:column gap:6px ai:center">
@@ -80,9 +86,10 @@
 		{/if}
 		<div class="flex ai:baseline gap:8px">
 			<span
-				class="f:10rem font-weight:700 line-h:1 ~color|0.5s"
-				style="color:{countColor($pendingTasks.length)}">{$pendingTasks.length}</span
+				class="f:10rem font-weight:700 line-h:1 fg:{countColor($pendingTasks.length)} ~color|0.5s"
 			>
+				{$pendingTasks.length}
+			</span>
 		</div>
 		<span class="f:2rem font-weight:700 fg:#9D9D9D ls:0.1em">Tasks</span>
 	</div>
