@@ -195,6 +195,23 @@ export function bubbleRadius(dueDate: Date | null): number {
 	return 24;
 }
 
+/**
+ * 期限までの残り日数を人間が読める文字列に変換する
+ * 期限なし: '期限なし'
+ * 期限切れ: '期限切れ'
+ * 今日中  : '今日'
+ * 明日中  : '明日'
+ * それ以降: 'N日後'
+ */
+export function dueDateLabel(dueDate: Date | null): string {
+	if (!dueDate) return '期限なし';
+	const days = (dueDate.getTime() - Date.now()) / 86_400_000;
+	if (days < 0) return '期限切れ';
+	if (days < 1) return '今日';
+	if (days < 2) return '明日';
+	return `${Math.ceil(days)}日後`;
+}
+
 // ---- アクション ----
 
 export function addLocalTask(task: Omit<LocalTask, 'id' | 'createdAt' | 'updatedAt'>): string {

@@ -2,7 +2,7 @@
 	import { onMount, untrack } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import { pendingTasks, deadlineColor, countColor } from '$lib/localTasks';
+	import { pendingTasks, deadlineColor, countColor, dueDateLabel } from '$lib/localTasks';
 	import gsap from 'gsap';
 	import CircleClock from '$lib/components/CircleClock.svelte';
 	import { physicsRotation, physicsClickCount, modeSwitchEnabled } from '$lib/physicsController';
@@ -143,15 +143,6 @@
 		didDrag = false;
 		pointerStartTaskId = null;
 		rotateTo(currentIndex);
-	}
-
-	function dueDateLabel(dueDate: Date | null): string {
-		if (!dueDate) return '期限なし';
-		const days = (dueDate.getTime() - Date.now()) / 86_400_000;
-		if (days < 0) return '期限切れ';
-		if (days < 1) return '今日';
-		if (days < 2) return '明日';
-		return `${Math.ceil(days)}日後`;
 	}
 
 	$effect(() => {
