@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { localTasks, completeLocalTask, removeLocalTask, deadlineColor } from '$lib/localTasks';
@@ -13,7 +13,7 @@
 	const dateStr = `${now.getMonth() + 1}月${now.getDate()}日（${'日月火水木金土'[now.getDay()]}）`;
 	const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
-	const id = $derived($page.params.id);
+	const id = $derived(page.params.id);
 	const task = $derived(get(localTasks).find((t) => t.id === id));
 
 	$effect(() => {
