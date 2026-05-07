@@ -162,7 +162,7 @@
 </script>
 
 <main
-	class="w:720px h:720px r:full flex ai:center jc:center flex-shrink:0"
+	class="w:720px h:720px r:full flex bg:base-6 ai:center jc:center flex-shrink:0"
 	style="touch-action: none; cursor: {CURSOR_VISIBLE ? 'default' : 'none'} !important;"
 	bind:this={mainEl}
 	onpointerdown={onPointerDown}
