@@ -31,17 +31,14 @@
 	let countMode = $state<'work' | 'rest' | 'loop'>('work');
 
 	// Knob baseline tracking (non-reactive)
-	let baseRotation = get(physicsRotation);
-	let baseWork = workMinutes;
-	let baseRest = restMinutes;
-	let baseLoop = loopCount;
+	// delta ベース：毎フレームの差分だけ見るので上限/下限でのデッドゾーンが生じない
+	let prevRotation = get(physicsRotation);
+	let rotAccum = 0; // サブステップ累積
 	let prevClickCount = get(physicsClickCount);
 
 	function resetBases() {
-		baseRotation = get(physicsRotation);
-		baseWork = workMinutes;
-		baseRest = restMinutes;
-		baseLoop = loopCount;
+		prevRotation = get(physicsRotation);
+		rotAccum = 0;
 	}
 
 	// Physical button click cycles through countMode
@@ -56,19 +53,23 @@
 		});
 	});
 
-	// Knob rotation adjusts the selected field
+	// Knob rotation adjusts the selected field (delta-based)
 	$effect(() => {
 		if (!IS_PHYSICS) return;
 		const rotation = $physicsRotation;
-		const mode = countMode;
-		const steps = Math.round((rotation - baseRotation) / STEP_DEG);
 		untrack(() => {
-			if (mode === 'work') {
-				workMinutes = Math.max(1, Math.min(99, baseWork + steps));
-			} else if (mode === 'rest') {
-				restMinutes = Math.max(1, Math.min(30, baseRest + steps));
+			const delta = rotation - prevRotation;
+			prevRotation = rotation;
+			rotAccum += delta;
+			const steps = Math.trunc(rotAccum / STEP_DEG);
+			if (steps === 0) return;
+			rotAccum -= steps * STEP_DEG;
+			if (countMode === 'work') {
+				workMinutes = Math.max(1, Math.min(99, workMinutes + steps));
+			} else if (countMode === 'rest') {
+				restMinutes = Math.max(1, Math.min(30, restMinutes + steps));
 			} else {
-				loopCount = Math.max(1, Math.min(99, baseLoop + steps));
+				loopCount = Math.max(1, Math.min(99, loopCount + steps));
 			}
 		});
 	});

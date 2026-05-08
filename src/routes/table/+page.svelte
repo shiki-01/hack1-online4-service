@@ -23,7 +23,8 @@
 	let tablePageEl: HTMLDivElement | undefined = $state();
 	let tableContentEl: HTMLDivElement | undefined = $state();
 	let taskCountEl: HTMLDivElement | undefined = $state();
-	let itemBaseRotation = 0;
+	let prevItemRotation = get(physicsRotation);
+	let itemRotAccum = 0;
 	let prevClickCount = get(physicsClickCount);
 	let drum = $state<HTMLDivElement | null>(null);
 	let currentIndex = $state(0);
@@ -269,23 +270,22 @@
 		rotateTo(currentIndex);
 	}
 
-	$effect(() => {
-		if (!IS_PHYSICS || $modeSwitchEnabled) return;
-		// false になった瞬間にベースラインを取得
-		untrack(() => {
-			itemBaseRotation = get(physicsRotation);
-		});
-	});
-
-	/** ノブ回転 → テーブルインデックス変換 */
+	/** ノブ回転 → テーブルインデックス変換 (delta-based) */
 	$effect(() => {
 		if (!IS_PHYSICS || $modeSwitchEnabled) return;
 		const tasks = $pendingTasks;
 		if (tasks.length === 0) return;
-		const delta = $physicsRotation - itemBaseRotation;
-		const rawIndex = Math.round(delta / ITEM_DEG);
-		const newIndex = clampIndex(rawIndex);
-		if (newIndex !== currentIndex) rotateTo(newIndex);
+		const rotation = $physicsRotation;
+		untrack(() => {
+			const delta = rotation - prevItemRotation;
+			prevItemRotation = rotation;
+			itemRotAccum += delta;
+			const steps = Math.trunc(itemRotAccum / ITEM_DEG);
+			if (steps === 0) return;
+			itemRotAccum -= steps * ITEM_DEG;
+			const newIndex = clampIndex(currentIndex + steps);
+			if (newIndex !== currentIndex) rotateTo(newIndex);
+		});
 	});
 
 	/** ボタンクリック → 選択中アイテムに遷移 */
