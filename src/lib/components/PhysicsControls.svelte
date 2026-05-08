@@ -2,8 +2,7 @@
 	import {
 		physicsRotation,
 		pushRotation,
-		pushClick,
-		toggleModeSwitch
+		pushClick
 	} from '$lib/physicsController';
 
 	interface Props {
@@ -45,7 +44,6 @@
 	}
 
 	function onButtonClick() {
-		if (!disableToggle) toggleModeSwitch();
 		pushClick();
 	}
 

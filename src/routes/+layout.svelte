@@ -8,14 +8,11 @@
 	import { goto, beforeNavigate } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import {
-		physicsRotation,
-		modeSwitchEnabled,
 		pushRotation,
 		pushClick
 	} from '$lib/physicsController';
 	import PhysicsControls from '$lib/components/PhysicsControls.svelte';
 	import Nav from '$lib/components/Nav.svelte';
-	import { untrack } from 'svelte';
 	import { get } from 'svelte/store';
 	import { onMount } from 'svelte';
 
@@ -23,14 +20,10 @@
 	const CURSOR_VISIBLE = import.meta.env.VITE_CURSOR_VISIBLE === 'true';
 	const VERSION = '1.4.0';
 
-	const DEGREES_PER_PAGE = 72;
-
 	let { children } = $props();
 
 	let navOpen = $state(false);
 	let mainEl: HTMLElement | undefined = $state();
-	let modeSwitchBaseRotation = 0;
-	let modeSwitchBasePageIndex = 0;
 	let pointerStartX = 0;
 	let pointerStartY = 0;
 
@@ -58,9 +51,8 @@
 	// 水平スライドで移動するページ群
 	const modes = [
 		{ href: '/clock' },
-		{ href: '/pomodoro' },
 		{ href: '/stack' },
-		{ href: '/settings' }
+		{ href: '/pomodoro' },
 	] as const;
 
 	// 垂直スワイプ（下から上）で開くページ群
@@ -196,7 +188,6 @@
 		const toPath = to.url.pathname;
 		const fromPath = page.url.pathname;
 		const pairKey = `${fromPath}->${toPath}`;
-		console.log(pairKey)
 
 		if (customElementPairs.has(pairKey)) {
 			if (!get(skipAnimationOnce)) {
@@ -273,6 +264,7 @@
 		const dy = pointerStartY - e.clientY;
 		const absDx = Math.abs(dx);
 		const absDy = Math.abs(dy);
+		const currentModeIndex = currentIndex;
 
 		// 垂直スワイプ
 		if (absDy > absDx && absDy >= 40) {
@@ -286,6 +278,7 @@
 		// 水平スワイプ（/table では無効）
 		if (page.url.pathname.startsWith('/table')) return;
 		if (absDx < 40) return;
+		if (currentModeIndex === -1) return;
 
 		// 左端からの右スワイプでナビを開く
 		const mainRect = mainEl?.getBoundingClientRect();
@@ -297,41 +290,17 @@
 
 		if (navOpen) return;
 
-		const tabHref = modes[currentIndex]?.href;
+		const tabHref = modes[currentModeIndex]?.href;
 		if (tabHref && page.url.pathname !== tabHref) {
 			if (dx < 0) goto(resolve(tabHref));
 			return;
 		}
 
-		const next = currentIndex + (dx > 0 ? 1 : -1);
-		if (next >= 0 && next < modes.length) {
-			goto(resolve(modes[next].href));
-		}
+		const step = dx > 0 ? 1 : -1;
+		const next = (currentModeIndex + step + modes.length) % modes.length;
+		goto(resolve(modes[next].href));
 	}
 
-	$effect(() => {
-		if (!IS_PHYSICS || !$modeSwitchEnabled) return;
-		const idx = currentIndex;
-		untrack(() => {
-			modeSwitchBaseRotation = get(physicsRotation);
-			modeSwitchBasePageIndex = idx >= 0 ? idx : 0;
-		});
-	});
-
-	$effect(() => {
-		if (!IS_PHYSICS || !$modeSwitchEnabled || !isMainPage) return;
-
-		const rotation = $physicsRotation;
-		const delta = rotation - modeSwitchBaseRotation;
-		const steps = Math.round(delta / DEGREES_PER_PAGE);
-		const N = modes.length;
-		const newIndex = (((modeSwitchBasePageIndex + steps) % N) + N) % N;
-		const curIdx = currentIndex >= 0 ? currentIndex : 0;
-
-		if (newIndex !== curIdx) {
-			goto(resolve(modes[newIndex].href));
-		}
-	});
 </script>
 
 <main
