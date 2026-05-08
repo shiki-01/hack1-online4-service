@@ -266,14 +266,8 @@
 		const absDy = Math.abs(dy);
 		const currentModeIndex = currentIndex;
 
-		// 垂直スワイプ
-		if (absDy > absDx && absDy >= 40) {
-			if (dy > 0 && !page.url.pathname.startsWith('/table') && !navOpen) {
-				// 上スワイプ -> /table を開く
-				goto(resolve('/table'));
-			}
-			return;
-		}
+		// 垂直スワイプは無視
+		if (absDy > absDx && absDy >= 40) return;
 
 		// 水平スワイプ（/table では無効）
 		if (page.url.pathname.startsWith('/table')) return;
