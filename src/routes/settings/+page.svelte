@@ -253,7 +253,7 @@
 				{s.language}
 			</span>
 			<div class="flex flex:wrap jc:center gap:4px" style="max-width: 180px;">
-				{#each LOCALES as loc}
+				{#each LOCALES as loc, i (i)}
 					<button
 						class="f:0.65rem font-weight:700 cursor:pointer px:7px py:3px r:99px user-select:none"
 						style="
@@ -314,7 +314,7 @@
 				<!-- タスク JSON タブ -->
 				{#if editorTab === 'tasks'}
 					<div class="flex gap:8px flex:wrap jc:center">
-						{#each presets as preset}
+						{#each presets as preset, i (i)}
 							<button
 								class="f:0.75rem font-weight:600 fg:base-2 cursor:pointer px:12px py:6px r:99px"
 								style="background: #2a2a2a; border: 1px solid #3a3a3a;"
@@ -372,7 +372,7 @@
 				{:else}
 					<!-- 言語選択 -->
 					<div class="flex flex:wrap gap:5px jc:center" style="max-width: 400px;">
-						{#each LOCALES as loc}
+						{#each LOCALES as loc, i (i)}
 							<button
 								class="f:0.75rem font-weight:700 cursor:pointer px:10px py:5px r:99px"
 								style="
