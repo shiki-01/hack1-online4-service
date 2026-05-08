@@ -25,63 +25,124 @@
 	let loopCount = $state(10);
 	let countMode = $state<'work' | 'rest'>('work');
 
+	let exitTl: gsap.core.Timeline | undefined;
+	let frameId: number | undefined;
+
 	let pageEl: HTMLDivElement | undefined = $state();
 	let clockEl: HTMLDivElement | undefined = $state();
 	let taskCountEl: HTMLDivElement | undefined = $state();
 
 	onMount(() => {
-		// /table → /pomodoro エントリーアニメーション
+		const tick = () => {
+			frameId = requestAnimationFrame(tick);
+		};
+		frameId = requestAnimationFrame(tick);
 		const t = get(pageTransition);
 		const taskCountNode = taskCountEl?.firstElementChild as HTMLElement | null;
+
 		if (t?.from === '/table' && pageEl && clockEl && taskCountNode) {
+			// /table → /pomodoro エントリーアニメーション
+			gsap.from(taskCountNode, { y: -400, duration: 0.3, ease: EASE_OUT });
+			gsap.from(clockEl, { scale: 0.9, duration: 0.3, ease: EASE_OUT });
+			gsap.from(pageEl, { width: 720, duration: 0.35, ease: EASE_OUT });
+		} else if (t?.from === '/pomodoro' || t?.from === '/stack' || t?.from === '/settings') {
 			gsap.from(taskCountNode, {
-				y: -400,
-				duration: 0.3,
+				transform: 'translateY(20px)',
+				duration: 0.4,
 				ease: EASE_OUT
 			});
-			gsap.from(clockEl, {
-				scale: 0.9,
-				duration: 0.3,
-				ease: EASE_OUT
-			});
-			gsap.from(pageEl, {
-				width: 720,
-				duration: 0.35,
-				ease: EASE_OUT
-			});
+			if (pageEl) {
+				gsap.from(pageEl, {
+					transform: 'translate(0,-50%)',
+					opacity: 0,
+					duration: 0.4,
+					ease: EASE_OUT
+				});
+			}
 		}
+
+		return () => {
+			if (frameId !== undefined) cancelAnimationFrame(frameId);
+		};
 	});
 
-	/** /pomodoro → /table 退場アニメーション */
 	$effect(() => {
 		const t = $pageTransition;
 		if (!t || t.from !== '/pomodoro' || t.to !== '/table') return;
 		const taskCountNode = taskCountEl?.firstElementChild as HTMLElement | null;
-		if (!pageEl || !clockEl || !taskCountNode) return;
+		if (!pageEl && !clockEl && !taskCountNode) return;
 
-		gsap.to(taskCountNode, {
-			y: -400,
-			duration: 0.3,
-			ease: EASE_IN
-		});
-
-		gsap.to(clockEl, {
-			scale: 0.9,
-			duration: 0.28,
-			ease: EASE_IN
-		});
-
-		gsap.to(pageEl, {
-			width: 720,
-			duration: 0.28,
-			ease: EASE_IN,
+		exitTl?.kill();
+		const tl = gsap.timeline({
 			onComplete: () => {
 				skipAnimationOnce.set(true);
 				goto(resolve('/table'));
 			}
 		});
+		exitTl = tl;
+
+		if (taskCountNode) {
+			tl.to(taskCountNode, { y: -400, duration: 0.3, ease: EASE_IN }, 0);
+		}
+		if (clockEl) {
+			tl.to(clockEl, { scale: 0.9, duration: 0.28, ease: EASE_IN }, 0);
+		}
+		if (pageEl) {
+			tl.to(pageEl, { width: 720, duration: 0.28, ease: EASE_IN }, 0);
+		}
+
 		return () => {
-			if (pageEl) gsap.killTweensOf(pageEl);
+			exitTl?.kill();
+		};
+	});
+
+	/** /pomodoro からの退場アニメーション（共通） */
+	$effect(() => {
+		const t = $pageTransition;
+		console.log(t)
+		if (!t || t.from !== '/pomodoro') return;
+		if (t.to !== '/clock' && t.to !== '/stack' && t.to !== '/settings') return;
+
+		const dest = t.to;
+		const taskCountNode = taskCountEl?.firstElementChild as HTMLElement | null;
+		if (!taskCountNode) return;
+		console.log(dest)
+
+		exitTl?.kill();
+		const tl = gsap.timeline({
+			onComplete: () => {
+				skipAnimationOnce.set(true);
+				goto(resolve(dest));
+			}
+		});
+		exitTl = tl;
+
+		if (taskCountNode) {
+			tl.to(
+				taskCountNode,
+				{
+					transform: 'translate(-50%,-160px) scale(1.1)',
+					duration: 0.2,
+					ease: EASE_OUT
+				},
+				0
+			);
+		}
+		if (pageEl) {
+			tl.to(
+				pageEl,
+				{
+					transform: 'translate(0,-50%)',
+					opacity: 0,
+					duration: 0.2,
+					ease: EASE_OUT
+				},
+				0
+			);
+		}
+
+		return () => {
+			exitTl?.kill();
 		};
 	});
 </script>
@@ -228,6 +289,7 @@
 		</div>
 	{:else}
 		<div
+			bind:this={pageEl}
 			class="abs top:50% left:50% translate(-50%,-50%) w:422px square r:999px pb:50px bg:base-6 inset:0 flex flex:column ai:center jc:center gap:25px"
 		>
 			<span class="flex ai:baseline gap:2px">

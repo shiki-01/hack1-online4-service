@@ -88,23 +88,63 @@
 
 	const routeAnimations: Partial<Record<string, RouteAnim>> = {
 		'/pomodoro': {
-			in:  (axis, dir) => ({ x: axis === 'x' ? dir * 560 : 0, y: axis === 'y' ? dir * 560 : 0, duration: 400, ease: EASE_OUT }),
-			out: (axis, dir) => ({ x: axis === 'x' ? -dir * 560 : 0, y: axis === 'y' ? -dir * 560 : 0, duration: 300, ease: EASE_IN })
+			in: (axis, dir) => ({
+				x: axis === 'x' ? dir * 560 : 0,
+				y: axis === 'y' ? dir * 560 : 0,
+				duration: 400,
+				ease: EASE_OUT
+			}),
+			out: (axis, dir) => ({
+				x: axis === 'x' ? -dir * 560 : 0,
+				y: axis === 'y' ? -dir * 560 : 0,
+				duration: 300,
+				ease: EASE_IN
+			})
 		},
 		'/clock': {
-			in:  (axis, dir) => ({ x: axis === 'x' ? dir * 560 : 0, y: axis === 'y' ? dir * 560 : 0, duration: 380, ease: EASE_OUT }),
-			out: (axis, dir) => ({ x: axis === 'x' ? -dir * 560 : 0, y: axis === 'y' ? -dir * 560 : 0, duration: 300, ease: EASE_IN })
+			in: (axis, dir) => ({
+				x: axis === 'x' ? dir * 560 : 0,
+				y: axis === 'y' ? dir * 560 : 0,
+				duration: 380,
+				ease: EASE_OUT
+			}),
+			out: (axis, dir) => ({
+				x: axis === 'x' ? -dir * 560 : 0,
+				y: axis === 'y' ? -dir * 560 : 0,
+				duration: 300,
+				ease: EASE_IN
+			})
 		},
 		'/stack': {
-			in:  (axis, dir) => ({ x: axis === 'x' ? dir * 560 : 0, y: axis === 'y' ? dir * 560 : 0, duration: 450, ease: EASE_STANDARD }),
-			out: (axis, dir) => ({ x: axis === 'x' ? -dir * 560 : 0, y: axis === 'y' ? -dir * 560 : 0, duration: 300, ease: EASE_IN })
+			in: (axis, dir) => ({
+				x: axis === 'x' ? dir * 560 : 0,
+				y: axis === 'y' ? dir * 560 : 0,
+				duration: 450,
+				ease: EASE_STANDARD
+			}),
+			out: (axis, dir) => ({
+				x: axis === 'x' ? -dir * 560 : 0,
+				y: axis === 'y' ? -dir * 560 : 0,
+				duration: 300,
+				ease: EASE_IN
+			})
 		},
 		'/settings': {
-			in:  (axis, dir) => ({ x: axis === 'x' ? dir * 560 : 0, y: axis === 'y' ? dir * 560 : 0, duration: 380, ease: EASE_OUT }),
-			out: (axis, dir) => ({ x: axis === 'x' ? -dir * 560 : 0, y: axis === 'y' ? -dir * 560 : 0, duration: 300, ease: EASE_IN })
+			in: (axis, dir) => ({
+				x: axis === 'x' ? dir * 560 : 0,
+				y: axis === 'y' ? dir * 560 : 0,
+				duration: 380,
+				ease: EASE_OUT
+			}),
+			out: (axis, dir) => ({
+				x: axis === 'x' ? -dir * 560 : 0,
+				y: axis === 'y' ? -dir * 560 : 0,
+				duration: 300,
+				ease: EASE_IN
+			})
 		},
 		'/table': {
-			in:  (_axis, dir) => ({ y: dir * 720, duration: 450, ease: EASE_OUT }),
+			in: (_axis, dir) => ({ y: dir * 720, duration: 450, ease: EASE_OUT }),
 			out: (_axis, dir) => ({ y: dir * -720, duration: 380, ease: EASE_IN })
 		}
 	};
@@ -122,9 +162,8 @@
 	);
 
 	const showPhysicsControls = $derived(
-		modes.some(
-			(m) => page.url.pathname === m.href || page.url.pathname.startsWith(m.href + '/')
-		) || verticalRoutes.some((r) => page.url.pathname === r || page.url.pathname.startsWith(r + '/'))
+		modes.some((m) => page.url.pathname === m.href || page.url.pathname.startsWith(m.href + '/')) ||
+			verticalRoutes.some((r) => page.url.pathname === r || page.url.pathname.startsWith(r + '/'))
 	);
 
 	const isSubPage = $derived(showPhysicsControls && !isMainPage);
@@ -133,40 +172,31 @@
 		if (!isMainPage) navOpen = false;
 	});
 
+	// 各ページが独自にアニメーションを処理するペア（layout のデフォルトスライドをキャンセル）
 	const customElementPairs = new Set([
-		'/clock→/table',    '/table→/clock',
-		'/pomodoro→/table', '/table→/pomodoro',
-		'/stack→/table',    '/table→/stack',
-		'/settings→/table', '/table→/settings'
+		// ─ 垂直（table） ─
+		'/clock->/table',    '/table->/clock',
+		'/pomodoro->/table', '/table->/pomodoro',
+		'/stack->/table',    '/table->/stack',
+		'/settings->/table', '/table->/settings',
+		// ─ 水平（各ページが制御） ─
+		'/clock->/pomodoro', '/pomodoro->/clock',
+		'/pomodoro->/stack', '/stack->/pomodoro',
+		'/stack->/settings', '/settings->/stack',
+		'/clock->/stack',    '/stack->/clock',
+		'/pomodoro->/settings', '/settings->/pomodoro',
+		'/clock->/settings', '/settings->/clock'
 	]);
 
-	// ─── ページペアごとの固有アニメーション ────────────────────────────────────
-	// 方向は各ペアに合わせて符号を固定済み。
-	// scale: out ならば縮小先、in ならば開始スケール（どちらも 1 = 変化なし）
-	const pairAnimations: Partial<Record<string, { in: TransitionParams; out: TransitionParams }>> = {
-		// pomodoro ↔ clock: タイマー→時計 スケール縮みながらスライド
-		'/pomodoro→/clock': { out: { x:  460, scale: 0.94, duration: 280, ease: EASE_IN  },
-		                      in:  { x: -560, scale: 0.96, duration: 420, ease: EASE_OUT } },
-		'/clock→/pomodoro': { out: { x: -460, scale: 0.94, duration: 280, ease: EASE_IN  },
-		                      in:  { x:  560, scale: 0.96, duration: 420, ease: EASE_OUT } },
-		// clock ↔ stack: 標準 S 字でなめらか
-		'/clock→/stack':    { out: { x: -500, duration: 300, ease: EASE_IN      },
-		                      in:  { x:  560, duration: 400, ease: EASE_STANDARD } },
-		'/stack→/clock':    { out: { x:  500, duration: 300, ease: EASE_IN      },
-		                      in:  { x: -560, duration: 400, ease: EASE_STANDARD } },
-		// stack ↔ settings: ゆったり丁寧
-		'/stack→/settings': { out: { x: -440, scale: 0.97, duration: 320, ease: EASE_IN  },
-		                      in:  { x:  560,               duration: 440, ease: EASE_OUT } },
-		'/settings→/stack': { out: { x:  440, scale: 0.97, duration: 320, ease: EASE_IN  },
-		                      in:  { x: -560,               duration: 440, ease: EASE_OUT } },
-	};
+	const pairAnimations: Partial<Record<string, { in: TransitionParams; out: TransitionParams }>> = {};
 	// ─────────────────────────────────────────────────────────────────────────
 
 	beforeNavigate(({ to, cancel }) => {
 		if (!to) return;
 		const toPath = to.url.pathname;
 		const fromPath = page.url.pathname;
-		const pairKey = `${fromPath}→${toPath}`;
+		const pairKey = `${fromPath}->${toPath}`;
+		console.log(pairKey)
 
 		if (customElementPairs.has(pairKey)) {
 			if (!get(skipAnimationOnce)) {
@@ -176,7 +206,7 @@
 			}
 			skipAnimationOnce.set(false);
 			outParams = { x: 0, y: 0, duration: 30 };
-			inParams  = { x: 0, y: 0, duration: 30 };
+			inParams = { x: 0, y: 0, duration: 30 };
 			pageTransition.set({ from: fromPath, to: toPath });
 			return;
 		}
@@ -196,9 +226,11 @@
 		let dir: 1 | -1 = 1;
 
 		if (isVerticalRoot(toPath) && !isVerticalRoot(fromPath) && !isVerticalChild(fromPath)) {
-			axis = 'y'; dir = 1;
+			axis = 'y';
+			dir = 1;
 		} else if (isVerticalRoot(fromPath) && !isVerticalRoot(toPath) && !isVerticalChild(toPath)) {
-			axis = 'y'; dir = -1;
+			axis = 'y';
+			dir = -1;
 		} else {
 			axis = 'x';
 			const toIsSub = isHorizontalChild(toPath) || isVerticalChild(toPath);
@@ -215,15 +247,18 @@
 			}
 		}
 
-		// ペア固有アニメーション → なければルート別 → なければデフォルト
+		// ペア固有アニメーション -> なければルート別 -> なければデフォルト
 		const pairAnim = pairAnimations[pairKey];
 		if (pairAnim) {
-			inParams  = pairAnim.in;
+			inParams = pairAnim.in;
 			outParams = pairAnim.out;
+		} else if (toPath === '/settings' || fromPath === '/settings') {
+			inParams = { opacity: 0, duration: 300, ease: EASE_OUT };
+			outParams = { opacity: 0, duration: 200, ease: EASE_IN };
 		} else {
-			const inAnim  = routeAnimations[toPath]   ?? defaultAnim;
-			const outAnim = routeAnimations[fromPath]  ?? defaultAnim;
-			inParams  = inAnim.in(axis, dir);
+			const inAnim = routeAnimations[toPath] ?? defaultAnim;
+			const outAnim = routeAnimations[fromPath] ?? defaultAnim;
+			inParams = inAnim.in(axis, dir);
 			outParams = outAnim.out(axis, dir);
 		}
 	});
@@ -242,7 +277,7 @@
 		// 垂直スワイプ
 		if (absDy > absDx && absDy >= 40) {
 			if (dy > 0 && !page.url.pathname.startsWith('/table') && !navOpen) {
-				// 上スワイプ → /table を開く
+				// 上スワイプ -> /table を開く
 				goto(resolve('/table'));
 			}
 			return;
@@ -323,7 +358,10 @@
 				role="button"
 				tabindex="0"
 				class="abs inset:0 z:15"
-				onpointerdown={(e) => { navOpen = false; e.stopPropagation(); }}
+				onpointerdown={(e) => {
+					navOpen = false;
+					e.stopPropagation();
+				}}
 				onpointerup={(e) => e.stopPropagation()}
 			></div>
 			<Nav />

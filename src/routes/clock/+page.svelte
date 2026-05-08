@@ -26,15 +26,63 @@
 		};
 		frameId = requestAnimationFrame(tick);
 
-		// /table → /clock エントリーアニメーション（clock→table の逆）
 		const t = get(pageTransition);
+
 		if (t?.from === '/table' && clockOuter) {
+			// /table → /clock エントリーアニメーション（clock→table の逆）
 			const tl = gsap.timeline();
 			if (numsWrap) tl.from(numsWrap, { scale: 2, duration: 0.4, ease: EASE_OUT }, 0);
 			if (handsWrapEl) tl.from(handsWrapEl, { scale: 1.6, duration: 0.3, ease: EASE_OUT }, 0);
 			if (centerCircleEl) tl.from(centerCircleEl, { width: 720, duration: 0.4, ease: EASE_OUT }, 0);
 			if (clockWrap) tl.from(clockWrap, { opacity: 0, duration: 0.4, ease: EASE_OUT }, 0);
-			if (taskCountEl) tl.from(taskCountEl, { scale: 0.9, y: -20, duration: 0.4, ease: EASE_OUT }, 0);
+			if (taskCountEl)
+				tl.from(taskCountEl, { scale: 0.9, y: -20, duration: 0.4, ease: EASE_OUT }, 0);
+		} else if (t?.from === '/pomodoro' || t?.from === '/stack' || t?.from === '/settings') {
+			const tl = gsap.timeline();
+			if (numsWrap) {
+				tl.from(
+					numsWrap,
+					{
+						transform: 'translateX(-50%)',
+						duration: 0.4,
+						ease: EASE_OUT
+					},
+					0
+				);
+			}
+			if (handsWrapEl) {
+				tl.from(
+					handsWrapEl,
+					{
+						transform: 'translateX(-50%)',
+						duration: 0.4,
+						ease: EASE_OUT
+					},
+					0
+				);
+			}
+			if (clockWrap) {
+				tl.from(
+					clockWrap,
+					{
+						transform: 'translateX(-50%)',
+						duration: 0.4,
+						ease: EASE_OUT
+					},
+					0
+				);
+			}
+			if (taskCountEl) {
+				tl.from(
+					taskCountEl,
+					{
+						transform: 'translateY(100px) scale(0.8)',
+						duration: 0.4,
+						ease: EASE_OUT
+					},
+					0
+				);
+			}
 		}
 
 		return () => {
@@ -80,6 +128,36 @@
 			tl.to(taskCountEl, { scale: 0.9, y: -20, duration: 0.4, ease: EASE_IN }, 0);
 		}
 
+		return () => {
+			exitTl?.kill();
+		};
+	});
+
+	/** /clock → 水平ページ 退場アニメーション */
+	$effect(() => {
+		const t = $pageTransition;
+		if (!t || t.from !== '/clock') return;
+		if (t.to !== '/pomodoro' && t.to !== '/stack' && t.to !== '/settings') return;
+
+		const dest = t.to;
+
+		exitTl?.kill();
+		const tl = gsap.timeline({
+			onComplete: () => {
+				skipAnimationOnce.set(true);
+				goto(resolve(dest));
+			}
+		});
+		exitTl = tl;
+
+		if (taskCountEl) {
+			tl.to(taskCountEl, {
+				y: 200,
+				scale: 0.9,
+				duration: 0.4,
+				ease: EASE_IN
+			});
+		}
 		return () => {
 			exitTl?.kill();
 		};

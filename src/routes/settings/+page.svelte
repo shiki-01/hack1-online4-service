@@ -10,27 +10,36 @@
 	let pageEl: HTMLDivElement | undefined = $state();
 
 	onMount(() => {
-		// /table → /settings エントリーアニメーション
 		const t = get(pageTransition);
-		if (t?.from === '/table' && pageEl) {
+		if (!t || !pageEl) return;
+
+		if (t.from === '/table') {
+			// /table → /settings: スケール + フェード
 			gsap.from(pageEl, { scale: 0.94, opacity: 0, duration: 0.35, ease: EASE_OUT });
+		} else if (t.from === '/clock' || t.from === '/pomodoro' || t.from === '/stack') {
+			// 水平遷移 → /settings: フェード
+			gsap.from(pageEl, { opacity: 0, duration: 0.3, ease: EASE_OUT });
 		}
 	});
 
-	/** /settings → /table 退場アニメーション */
+	/** /settings 退場アニメーション（どこへでもフェード） */
 	$effect(() => {
 		const t = $pageTransition;
-		if (!t || t.from !== '/settings' || t.to !== '/table') return;
+		if (!t || t.from !== '/settings') return;
+		if (t.to !== '/clock' && t.to !== '/pomodoro' && t.to !== '/settings' && t.to !== '/table') return;
 		if (!pageEl) return;
 
+		const dest = t.to;
+		const isTable = dest === '/table';
+
 		gsap.to(pageEl, {
-			scale: 0.94,
+			...(isTable ? { scale: 0.94 } : {}),
 			opacity: 0,
-			duration: 0.28,
+			duration: isTable ? 0.28 : 0.2,
 			ease: EASE_IN,
 			onComplete: () => {
 				skipAnimationOnce.set(true);
-				goto(resolve('/table'));
+				goto(resolve(dest));
 			}
 		});
 		return () => { if (pageEl) gsap.killTweensOf(pageEl); };

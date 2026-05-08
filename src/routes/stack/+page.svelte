@@ -82,25 +82,9 @@
 		const taskCountNode = taskCountEl?.firstElementChild as HTMLElement | null;
 		if (!pageEl || !taskCountNode || !canvas || !canvasWrap) return;
 
-		gsap.to(canvas, {
-			scale: 1.2,
-			duration: 0.3,
-			ease: EASE_IN
-		});
-
-		gsap.to(canvasWrap, {
-			width: 200,
-			height: 200,
-			duration: 0.3,
-			ease: EASE_IN
-		});
-
-		gsap.to(taskCountNode, {
-			y: -400,
-			duration: 0.3,
-			ease: EASE_IN
-		});
-
+		gsap.to(canvas, { scale: 1.2, duration: 0.3, ease: EASE_IN });
+		gsap.to(canvasWrap, { width: 200, height: 200, duration: 0.3, ease: EASE_IN });
+		gsap.to(taskCountNode, { y: -400, duration: 0.3, ease: EASE_IN });
 		gsap.to(pageEl, {
 			scale: 1,
 			duration: 0.28,
@@ -115,36 +99,37 @@
 		};
 	});
 
+	/** /stack → 水平ページ 退場アニメーション */
+	$effect(() => {
+		const t = $pageTransition;
+		if (!t || t.from !== '/stack') return;
+		if (t.to !== '/clock' && t.to !== '/pomodoro' && t.to !== '/settings') return;
+
+		const dest = t.to;
+		// TODO: 個別エレメントのアニメーションをここに記述
+		// 完了後に以下で遷移:
+		skipAnimationOnce.set(true);
+		goto(resolve(dest));
+
+		return () => {
+			if (pageEl) gsap.killTweensOf(pageEl);
+		};
+	});
+
 	onMount(() => {
 		if (!canvas) return;
-		// /table → /stack エントリーアニメーション
 		const transition = get(pageTransition);
 		const taskCountNode = taskCountEl?.firstElementChild as HTMLElement | null;
+
 		if (transition?.from === '/table' && pageEl && taskCountNode && canvas && canvasWrap) {
-			gsap.from(canvasWrap, {
-				width: 200,
-				height: 200,
-				duration: 0.3,
-				ease: EASE_OUT
-			});
-
-			gsap.from(canvas, {
-				scale: 1.2,
-				duration: 0.3,
-				ease: EASE_OUT
-			});
-
-			gsap.from(taskCountNode, {
-				y: -400,
-				duration: 0.3,
-				ease: EASE_OUT
-			});
-
-			gsap.from(pageEl, {
-				scale: 1,
-				duration: 0.35,
-				ease: EASE_OUT
-			});
+			// /table → /stack エントリーアニメーション
+			gsap.from(canvasWrap, { width: 200, height: 200, duration: 0.3, ease: EASE_OUT });
+			gsap.from(canvas, { scale: 1.2, duration: 0.3, ease: EASE_OUT });
+			gsap.from(taskCountNode, { y: -400, duration: 0.3, ease: EASE_OUT });
+			gsap.from(pageEl, { scale: 1, duration: 0.35, ease: EASE_OUT });
+		} else if (transition?.from === '/clock' || transition?.from === '/pomodoro' || transition?.from === '/settings') {
+			// 水平遷移 → /stack エントリーアニメーション
+			// TODO: 個別エレメントのアニメーションをここに記述
 		}
 
 		const tasks = get(pendingTasks);
