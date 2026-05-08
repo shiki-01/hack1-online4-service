@@ -19,7 +19,7 @@
 
 	const IS_PHYSICS = import.meta.env.VITE_IS_PHYSICS === 'true';
 	const CURSOR_VISIBLE = import.meta.env.VITE_CURSOR_VISIBLE === 'true';
-	const VERSION = '1.4.6';
+	const VERSION = '1.4.7';
 
 	let { children } = $props();
 
@@ -311,7 +311,7 @@
 </script>
 
 <main
-	class="w:720px h:720px r:full flex bg:base-6 ai:center jc:center flex-shrink:0"
+	class="w:720px h:720px mt:100px ml:100px r:full flex bg:base-6 ai:center jc:center flex-shrink:0"
 	style="touch-action: none; cursor: {CURSOR_VISIBLE ? 'default' : 'none'} !important;"
 	bind:this={mainEl}
 	onpointerdown={onPointerDown}
