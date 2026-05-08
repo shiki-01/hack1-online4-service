@@ -44,7 +44,7 @@
 		{ cx: 56, cy: 88, r: 8, pair: colorPairs[0], angle: 70 }
 	];
 
-	const CONTAINER_R = 270;
+	let CONTAINER_R = 270;
 	const GRAVITY = 0.5;
 	const FRICTION = 0.985;
 	const RESTITUTION = 0.15;
@@ -149,7 +149,8 @@
 
 		const tasks = get(pendingTasks);
 
-		const SIZE = 560;
+		const SIZE = 525;
+		CONTAINER_R = SIZE / 2;
 		const dpr = window.devicePixelRatio || 1;
 		canvas.width = SIZE * dpr;
 		canvas.height = SIZE * dpr;
@@ -324,10 +325,10 @@
 </script>
 
 <div class="abs inset:0 flex ai:center bg:base-5 jc:center bg:base-6" bind:this={pageEl}>
-	<div bind:this={canvasWrap} class="w:564px h:564px rel overflow:hidden r:50%">
+	<div bind:this={canvasWrap} class="w:544px square bg:base-5 rel overflow:hidden r:50%">
 		<canvas
 			bind:this={canvas}
-			class="bg:base-5 abs top:50% left:50% translate(-50%,-50%) w:560px h:560px max-w:none max-h:none block"
+			class="bg:base-5 abs top:50% left:50% translate(-50%,-50%) w:525px square max-w:none max-h:none block"
 		></canvas>
 	</div>
 

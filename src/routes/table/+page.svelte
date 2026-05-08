@@ -383,7 +383,6 @@
 			</div>
 		</div>
 	</div>
-	<!-- /tableContentEl -->
 </div>
 
 <style>

@@ -57,8 +57,8 @@
 
 	// 水平スライドで移動するページ群
 	const modes = [
-		{ href: '/pomodoro' },
 		{ href: '/clock' },
+		{ href: '/pomodoro' },
 		{ href: '/stack' },
 		{ href: '/settings' }
 	] as const;
@@ -103,7 +103,6 @@
 			in:  (axis, dir) => ({ x: axis === 'x' ? dir * 560 : 0, y: axis === 'y' ? dir * 560 : 0, duration: 380, ease: EASE_OUT }),
 			out: (axis, dir) => ({ x: axis === 'x' ? -dir * 560 : 0, y: axis === 'y' ? -dir * 560 : 0, duration: 300, ease: EASE_IN })
 		},
-		// /table は常に下から上にイン、上から下にアウト（軸に関係なく）
 		'/table': {
 			in:  (_axis, dir) => ({ y: dir * 720, duration: 450, ease: EASE_OUT }),
 			out: (_axis, dir) => ({ y: dir * -720, duration: 380, ease: EASE_IN })
@@ -146,10 +145,10 @@
 	// scale: out ならば縮小先、in ならば開始スケール（どちらも 1 = 変化なし）
 	const pairAnimations: Partial<Record<string, { in: TransitionParams; out: TransitionParams }>> = {
 		// pomodoro ↔ clock: タイマー→時計 スケール縮みながらスライド
-		'/pomodoro→/clock': { out: { x: -460, scale: 0.94, duration: 280, ease: EASE_IN  },
-		                      in:  { x:  560, scale: 0.96, duration: 420, ease: EASE_OUT } },
-		'/clock→/pomodoro': { out: { x:  460, scale: 0.94, duration: 280, ease: EASE_IN  },
+		'/pomodoro→/clock': { out: { x:  460, scale: 0.94, duration: 280, ease: EASE_IN  },
 		                      in:  { x: -560, scale: 0.96, duration: 420, ease: EASE_OUT } },
+		'/clock→/pomodoro': { out: { x: -460, scale: 0.94, duration: 280, ease: EASE_IN  },
+		                      in:  { x:  560, scale: 0.96, duration: 420, ease: EASE_OUT } },
 		// clock ↔ stack: 標準 S 字でなめらか
 		'/clock→/stack':    { out: { x: -500, duration: 300, ease: EASE_IN      },
 		                      in:  { x:  560, duration: 400, ease: EASE_STANDARD } },
