@@ -2,6 +2,8 @@
 	import { onMount } from 'svelte';
 	import { pendingTasks, countColor } from '$lib/localTasks';
 	import { pomodoroPhase, pomodoroTimeDisplay } from '$lib/pomodoroStore';
+	import { currentLocale } from '$lib/languageStore';
+	import { t } from '$lib/i18n';
 	import gsap from 'gsap';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
@@ -210,12 +212,14 @@
 	const h12 = $derived(h % 12 || 12);
 	const hh = $derived(String(h).padStart(2, '0'));
 	const mm = $derived(String(m).padStart(2, '0'));
-	const week = ['日', '月', '火', '水', '木', '金', '土'];
 
 	const secondDeg = $derived(((s + ms / 1000) / 60) * 360);
 	const minuteDeg = $derived(((m + s / 60 + ms / 60000) / 60) * 360);
 	const hourDeg = $derived((((h % 12) + m / 60 + s / 3600) / 12) * 360);
 	const numerals = Array.from({ length: 12 }, (_, i) => i + 1);
+	const ui = $derived(t($currentLocale));
+	const dateStr = $derived(`${mo}月${d}日 (${ui.weekdays[wd]})`);
+	const dateStrLocalized = $derived(ui.formatArcDate(now));
 </script>
 
 <div class="rel w:full h:full r:full bg:base-5" aria-label="analog clock" bind:this={clockOuter}>
@@ -260,7 +264,7 @@
 						? 'orange-1'
 						: 'blue-1'}"
 				>
-					{$pomodoroPhase === 'work' ? '作業中' : '休憩中'}
+					{$pomodoroPhase === 'work' ? ui.work : ui.breakPhase}
 				</span>
 				<span class="f:2.3rem font-weight:600 fg:base-1 line-h:1 font-family:reddit-sans,sans-serif"
 					>{$pomodoroTimeDisplay}</span
@@ -269,7 +273,7 @@
 		{:else}
 			<div class="flex flex:column gap:6px ai:center" bind:this={clockWrap}>
 				<span class="f:2.5rem font-weight:500 ls:0.05em fg:base-1">{hh}:{mm}</span>
-				<span class="f:1.2rem font-weight:500 fg:#777676">{mo}月{d}日 ({week[wd]})</span>
+				<span class="f:1.2rem font-weight:500 fg:#777676">{dateStrLocalized}</span>
 			</div>
 		{/if}
 		<div class="flex flex:column ai:center gap:8px" bind:this={taskCountEl}>

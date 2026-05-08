@@ -5,13 +5,15 @@
 	import { localTasks, completeLocalTask, removeLocalTask, deadlineColor, dueDateLabel } from '$lib/localTasks';
 	import { get } from 'svelte/store';
 	import { currentLocale } from '$lib/languageStore';
+	import { t } from '$lib/i18n';
 	import { physicsRotation, physicsClickCount } from '$lib/physicsController';
 
 	const IS_PHYSICS = import.meta.env.VITE_IS_PHYSICS === 'true';
 
 	const now = new Date();
-	const dateStr = `${now.getMonth() + 1}月${now.getDate()}日（${'日月火水木金土'[now.getDay()]}）`;
 	const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+	const dateStr = $derived(t($currentLocale).formatArcDate(now));
+	const ui = $derived(t($currentLocale));
 
 	const id = $derived(page.params.id);
 	const task = $derived(get(localTasks).find((t) => t.id === id));
@@ -102,7 +104,7 @@
 			{#if task.description}
 				<p class="f:0.82rem color:#888 line-h:1.6rem m:0">{task.description}</p>
 			{:else}
-				<p class="f:0.82rem color:#444 line-h:1.6rem m:0 font-style:italic">説明なし</p>
+				<p class="f:0.82rem color:#444 line-h:1.6rem m:0 font-style:italic">{ui.noDescription}</p>
 			{/if}
 
 			<div class="mt:4">
@@ -147,7 +149,7 @@
 		<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
 			<polyline points="15 18 9 12 15 6" />
 		</svg>
-		<span style="font-size:0.75rem;letter-spacing:0.03em;">一覧</span>
+		<span style="font-size:0.75rem;letter-spacing:0.03em;">{ui.list}</span>
 	</button>
 </div>
 

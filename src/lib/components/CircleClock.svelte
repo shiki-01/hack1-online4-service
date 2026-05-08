@@ -1,9 +1,11 @@
 <script lang="ts">
 	import { pomodoroPhase, pomodoroTimeDisplay } from '$lib/pomodoroStore';
+	import { currentLocale } from '$lib/languageStore';
+	import { t } from '$lib/i18n';
 
 	const now = new Date();
-	const dateStr = `${now.getMonth() + 1}月${now.getDate()}日 (${'日月火水木金土'[now.getDay()]})`;
 	const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+	const dateStr = $derived(t($currentLocale).formatArcDate(now));
 
 	let { isPomodoro = false }: { isPomodoro?: boolean } = $props();
 </script>

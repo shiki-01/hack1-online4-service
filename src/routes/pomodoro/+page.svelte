@@ -3,6 +3,8 @@
 	import { untrack } from 'svelte';
 	import { get } from 'svelte/store';
 	import { pendingTasks } from '$lib/localTasks';
+	import { currentLocale } from '$lib/languageStore';
+	import { t } from '$lib/i18n';
 	import {
 		pomodoroPhase,
 		pomodoroLoop,
@@ -266,8 +268,9 @@
 		};
 	});
 
+	const ui = $derived(t($currentLocale));
 	const modeLabel = $derived(
-		countMode === 'work' ? '作業時間(分)' : countMode === 'rest' ? '休憩時間(分)' : 'ループ回数'
+		countMode === 'work' ? ui.workTime : countMode === 'rest' ? ui.restTime : ui.loopCount
 	);
 </script>
 
@@ -411,7 +414,7 @@
 						? 'orange-1'
 						: 'blue-1'}"
 				>
-					{$pomodoroPhase === 'work' ? '作業中' : '休憩中'}
+					{$pomodoroPhase === 'work' ? ui.work : ui.breakPhase}
 				</span>
 				<div
 					class="f:5rem font-weight:600 fg:base-1 ls:0.02em font-family:'reddit-sans',sans-serif"
