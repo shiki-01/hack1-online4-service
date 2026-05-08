@@ -164,10 +164,9 @@
 				else removeLocalTask(taskId);
 			}
 		});
-		// その場でフェードアウト
+		// その場でフェードアウト（アイコンは bgEl の子なので bgEl と一緒に消える）
 		tl.to(cardInner, { opacity: 0, duration: 0.28, ease: 'power1.out' }, 0);
-		tl.to(iconEl, { scale: 1.3, opacity: 0, duration: 0.28, ease: 'power1.out' }, 0);
-		tl.to(bgEl, { opacity: 0, duration: 0.35, ease: 'power1.out' }, 0.05);
+		tl.to(bgEl, { opacity: 0, duration: 0.32, ease: 'power1.out' }, 0);
 	}
 	// ─────────────────────────────────────────────────────────────────────────
 
@@ -576,5 +575,17 @@
 	.card-title.active {
 		color: #f0f0f0;
 		font-weight: 600;
+	}
+
+	.swipe-bg-right {
+		opacity: 0;
+		background: linear-gradient(90deg, #1a4d2a 0%, #2d7a42 100%);
+		border-radius: 12px;
+	}
+
+	.swipe-bg-left {
+		opacity: 0;
+		background: linear-gradient(270deg, #4d1a1a 0%, #7a2d2d 100%);
+		border-radius: 12px;
 	}
 </style>
