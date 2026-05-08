@@ -13,6 +13,7 @@
 	} from '$lib/physicsController';
 	import PhysicsControls from '$lib/components/PhysicsControls.svelte';
 	import Nav from '$lib/components/Nav.svelte';
+	import { get } from 'svelte/store';
 
 	import { onMount } from 'svelte';
 
@@ -189,7 +190,6 @@
 		const toPath = to.url.pathname;
 		const fromPath = page.url.pathname;
 		const pairKey = `${fromPath}->${toPath}`;
-		console.log(pairKey)
 
 		if (customElementPairs.has(pairKey)) {
 			if (!get(skipAnimationOnce)) {
@@ -267,14 +267,8 @@
 		const absDx = Math.abs(dx);
 		const absDy = Math.abs(dy);
 
-		// 垂直スワイプ
-		if (absDy > absDx && absDy >= 40) {
-			if (dy > 0 && !page.url.pathname.startsWith('/table') && !navOpen) {
-				// 上スワイプ -> /table を開く
-				goto(resolve('/table'));
-			}
-			return;
-		}
+		// 垂直スワイプは無視
+		if (absDy > absDx && absDy >= 40) return;
 
 		// 水平スワイプ（/table では無効）
 		if (page.url.pathname.startsWith('/table')) return;
@@ -324,17 +318,7 @@
 		{/key}
 
 		{#if isMainPage && navOpen}
-			<div
-				role="button"
-				tabindex="0"
-				class="abs inset:0 z:15"
-				onpointerdown={(e) => {
-					navOpen = false;
-					e.stopPropagation();
-				}}
-				onpointerup={(e) => e.stopPropagation()}
-			></div>
-			<Nav />
+			<Nav onClose={(x, y) => { navOpen = false; pointerStartX = x; pointerStartY = y; }} />
 		{/if}
 
 		{#if IS_PHYSICS && showPhysicsControls}
