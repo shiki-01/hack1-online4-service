@@ -270,8 +270,13 @@
 		const absDy = Math.abs(dy);
 		const currentModeIndex = currentIndex;
 
-		// 垂直スワイプは無視
-		if (absDy > absDx && absDy >= 40) return;
+		// 垂直スワイプ（上スワイプで /table を開く）
+		if (absDy > absDx && absDy >= 40) {
+			if (dy > 0 && !page.url.pathname.startsWith('/table') && !navOpen) {
+				goto(resolve('/table'));
+			}
+			return;
+		}
 
 		// 水平スワイプ（/table では無効）
 		if (page.url.pathname.startsWith('/table')) return;
