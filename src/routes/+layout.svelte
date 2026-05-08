@@ -14,6 +14,7 @@
 	import PhysicsControls from '$lib/components/PhysicsControls.svelte';
 	import Nav from '$lib/components/Nav.svelte';
 	import { get } from 'svelte/store';
+
 	import { onMount } from 'svelte';
 
 	const IS_PHYSICS = import.meta.env.VITE_IS_PHYSICS === 'true';
@@ -320,19 +321,7 @@
 		{/key}
 
 		{#if canOpenNav && navOpen}
-			<div
-				role="button"
-				tabindex="0"
-				class="abs inset:0 z:15"
-				onpointerdown={(e) => {
-					navOpen = false;
-					pointerStartX = e.clientX;
-					pointerStartY = e.clientY;
-					e.stopPropagation();
-				}}
-				onpointerup={(e) => e.stopPropagation()}
-			></div>
-			<Nav />
+			<Nav onClose={(x, y) => { navOpen = false; pointerStartX = x; pointerStartY = y; }} />
 		{/if}
 
 		{#if IS_PHYSICS && showPhysicsControls}

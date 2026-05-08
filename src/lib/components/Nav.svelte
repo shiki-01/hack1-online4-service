@@ -23,6 +23,11 @@
 		WIDTH: 205.7,
 		HEIGHT: 516.45
 	} as const;
+
+	interface Props {
+		onClose: (x: number, y: number) => void;
+	}
+	let { onClose }: Props = $props();
 </script>
 
 <!-- ラッパーで fly トランジション。nav の translateY(-50%) と競合しないよう分離 -->
@@ -32,7 +37,12 @@
 >
 	<nav
 		class="w:695px h:695px abs left:50% top:50% translate(-50%,-50%) flex flex:column ai:stretch jc:space-between pointer-events:auto"
-		onpointerdown={(e) => e.stopPropagation()}
+		onpointerdown={(e) => {
+			if (!(e.target as Element).closest('button')) {
+				onClose(e.clientX, e.clientY);
+			}
+			e.stopPropagation();
+		}}
 		onpointerup={(e) => e.stopPropagation()}
 	>
 		<div class="w:100% h:100% flex rel flex:column ai:center jc:center">
