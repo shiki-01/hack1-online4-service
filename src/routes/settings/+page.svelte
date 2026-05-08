@@ -24,7 +24,7 @@
 	$effect(() => {
 		const t = $pageTransition;
 		if (!t || t.from !== '/settings') return;
-		if (t.to !== '/clock' && t.to !== '/pomodoro' && t.to !== '/settings' && t.to !== '/table') return;
+		if (t.to !== '/clock' && t.to !== '/pomodoro' && t.to !== '/stack' && t.to !== '/table') return;
 		if (!pageEl) return;
 
 		const dest = t.to;

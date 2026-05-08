@@ -153,6 +153,9 @@
 			verticalRoutes.some((r) => page.url.pathname === r)
 	);
 
+	/** nav を開閉できるページ（水平スワイプ対象 + settings） */
+	const canOpenNav = $derived(isMainPage || page.url.pathname === '/settings');
+
 	const showPhysicsControls = $derived(
 		modes.some((m) => page.url.pathname === m.href || page.url.pathname.startsWith(m.href + '/')) ||
 			verticalRoutes.some((r) => page.url.pathname === r || page.url.pathname.startsWith(r + '/'))
@@ -161,7 +164,7 @@
 	const isSubPage = $derived(showPhysicsControls && !isMainPage);
 
 	$effect(() => {
-		if (!isMainPage) navOpen = false;
+		if (!canOpenNav) navOpen = false;
 	});
 
 	// 各ページが独自にアニメーションを処理するペア（layout のデフォルトスライドをキャンセル）
@@ -272,17 +275,17 @@
 		// 水平スワイプ（/table では無効）
 		if (page.url.pathname.startsWith('/table')) return;
 		if (absDx < 40) return;
-		if (currentModeIndex === -1) return;
 
-		// 左端からの右スワイプでナビを開く
+		// 左端からの右スワイプでナビを開く（nav対応ページ全体）
 		const mainRect = mainEl?.getBoundingClientRect();
 		const relX = mainRect ? pointerStartX - mainRect.left : pointerStartX;
-		if (isMainPage && !navOpen && relX < 30 && dx < 0) {
+		if (canOpenNav && !navOpen && relX < 30 && dx < 0) {
 			navOpen = true;
 			return;
 		}
 
 		if (navOpen) return;
+		if (currentModeIndex === -1) return;
 
 		const tabHref = modes[currentModeIndex]?.href;
 		if (tabHref && page.url.pathname !== tabHref) {
@@ -316,13 +319,15 @@
 			</div>
 		{/key}
 
-		{#if isMainPage && navOpen}
+		{#if canOpenNav && navOpen}
 			<div
 				role="button"
 				tabindex="0"
 				class="abs inset:0 z:15"
 				onpointerdown={(e) => {
 					navOpen = false;
+					pointerStartX = e.clientX;
+					pointerStartY = e.clientY;
 					e.stopPropagation();
 				}}
 				onpointerup={(e) => e.stopPropagation()}
