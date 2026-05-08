@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { untrack } from 'svelte';
 	import { get } from 'svelte/store';
 	import { pendingTasks } from '$lib/localTasks';
 	import {
@@ -12,6 +13,7 @@
 		togglePause,
 		skipInterval
 	} from '$lib/pomodoroStore';
+	import { physicsRotation, physicsClickCount } from '$lib/physicsController';
 	import CircleClock from '$lib/components/CircleClock.svelte';
 	import TaskCount from '$lib/components/TaskCount.svelte';
 	import gsap from 'gsap';
@@ -20,10 +22,56 @@
 	import { EASE_OUT, EASE_IN } from '$lib/easings';
 	import { resolve } from '$app/paths';
 
+	const IS_PHYSICS = import.meta.env.VITE_IS_PHYSICS === 'true';
+	const STEP_DEG = 5;
+
 	let workMinutes = $state(25);
 	let restMinutes = $state(5);
 	let loopCount = $state(10);
-	let countMode = $state<'work' | 'rest'>('work');
+	let countMode = $state<'work' | 'rest' | 'loop'>('work');
+
+	// Knob baseline tracking (non-reactive)
+	let baseRotation = 0;
+	let baseWork = workMinutes;
+	let baseRest = restMinutes;
+	let baseLoop = loopCount;
+	let prevClickCount = get(physicsClickCount);
+
+	function resetBases() {
+		baseRotation = get(physicsRotation);
+		baseWork = workMinutes;
+		baseRest = restMinutes;
+		baseLoop = loopCount;
+	}
+
+	// Physical button click cycles through countMode
+	$effect(() => {
+		const count = $physicsClickCount;
+		if (!IS_PHYSICS) { prevClickCount = count; return; }
+		if (count === prevClickCount) return;
+		prevClickCount = count;
+		untrack(() => {
+			countMode = countMode === 'work' ? 'rest' : countMode === 'rest' ? 'loop' : 'work';
+			resetBases();
+		});
+	});
+
+	// Knob rotation adjusts the selected field
+	$effect(() => {
+		if (!IS_PHYSICS) return;
+		const rotation = $physicsRotation;
+		const mode = countMode;
+		const steps = Math.round((rotation - baseRotation) / STEP_DEG);
+		untrack(() => {
+			if (mode === 'work') {
+				workMinutes = Math.max(1, Math.min(99, baseWork + steps));
+			} else if (mode === 'rest') {
+				restMinutes = Math.max(1, Math.min(30, baseRest + steps));
+			} else {
+				loopCount = Math.max(1, Math.min(99, baseLoop + steps));
+			}
+		});
+	});
 
 	let exitTl: gsap.core.Timeline | undefined;
 	let frameId: number | undefined;
@@ -33,6 +81,8 @@
 	let taskCountEl: HTMLDivElement | undefined = $state();
 
 	onMount(() => {
+		resetBases();
+
 		const tick = () => {
 			frameId = requestAnimationFrame(tick);
 		};
@@ -145,6 +195,10 @@
 			exitTl?.kill();
 		};
 	});
+
+	const modeLabel = $derived(
+		countMode === 'work' ? '作業時間(分)' : countMode === 'rest' ? '休憩時間(分)' : 'ループ回数'
+	);
 </script>
 
 <div class="rel w:full h:full r:full bg:base-5 overflow:hidden" aria-label="pomodoro timer">
@@ -163,9 +217,12 @@
 						onclick={() => {
 							if (countMode === 'work') {
 								workMinutes = Math.max(workMinutes - 1, 1);
-							} else {
+							} else if (countMode === 'rest') {
 								restMinutes = Math.max(restMinutes - 1, 1);
+							} else {
+								loopCount = Math.max(loopCount - 1, 1);
 							}
+							resetBases();
 						}}
 					>
 						<svg width="20" height="12" viewBox="0 0 20 12"
@@ -178,36 +235,49 @@
 						>
 					</button>
 
-					<div class="w:228px flex flex:row gap:10px jc:center ai:end">
+					<div class="flex flex:row gap:12px jc:center ai:end">
 						<div
-							class="w:{workMinutes < 10 ? 68 : 140}px flex flex:column ai:center jc:end gap:10px"
+							class="flex flex:column ai:center jc:end"
 							role="button"
 							tabindex="0"
-							onclick={() => (countMode = countMode === 'work' ? 'rest' : 'work')}
+							onclick={() => { countMode = 'work'; resetBases(); }}
 							onkeydown={() => {}}
 						>
 							<span
-								class="f:7.5rem font-weight:600 fg:{countMode === 'work'
-									? 'base-1'
-									: 'base-2'} line-h:1 ls:-0.02em"
+								class="font-weight:600 fg:{countMode === 'work' ? 'base-1' : 'base-3'} line-h:1 ls:-0.02em ~font-size|150ms|ease-out"
+								style="font-size: {countMode === 'work' ? '5.5rem' : '3rem'}"
 							>
 								{workMinutes}
 							</span>
 						</div>
 
 						<div
-							class="w:{restMinutes < 10 ? 38 : 78}px flex ai:center jc:start pb:8px"
+							class="flex ai:center jc:start pb:8px"
 							role="button"
 							tabindex="0"
-							onclick={() => (countMode = countMode === 'work' ? 'rest' : 'work')}
+							onclick={() => { countMode = 'rest'; resetBases(); }}
 							onkeydown={() => {}}
 						>
 							<span
-								class="f:4rem font-weight:600 fg:{countMode === 'work'
-									? 'base-2'
-									: 'base-1'} line-h:1"
+								class="font-weight:600 fg:{countMode === 'rest' ? 'base-1' : 'base-3'} line-h:1 ~font-size|150ms|ease-out"
+								style="font-size: {countMode === 'rest' ? '5.5rem' : '3rem'}"
 							>
 								{restMinutes}
+							</span>
+						</div>
+
+						<div
+							class="flex ai:center jc:start pb:8px"
+							role="button"
+							tabindex="0"
+							onclick={() => { countMode = 'loop'; resetBases(); }}
+							onkeydown={() => {}}
+						>
+							<span
+								class="font-weight:600 fg:{countMode === 'loop' ? 'base-1' : 'base-3'} line-h:1 ~font-size|150ms|ease-out"
+								style="font-size: {countMode === 'loop' ? '5.5rem' : '3rem'}"
+							>
+								{loopCount}
 							</span>
 						</div>
 					</div>
@@ -218,9 +288,12 @@
 						onclick={() => {
 							if (countMode === 'work') {
 								workMinutes = Math.min(workMinutes + 1, 99);
-							} else {
+							} else if (countMode === 'rest') {
 								restMinutes = Math.min(restMinutes + 1, 30);
+							} else {
+								loopCount = Math.min(loopCount + 1, 99);
 							}
+							resetBases();
 						}}
 					>
 						<svg width="20" height="12" viewBox="0 0 20 12"
@@ -235,7 +308,7 @@
 				</div>
 
 				<span class="f:1.6em font-weight:700 fg:base-2 mt:6px white-space:nowrap">
-					作業時間(分)
+					{modeLabel}
 				</span>
 			</div>
 
@@ -248,44 +321,6 @@
 					<polygon points="10,5 31,18 10,31" class="fill:base-1" />
 				</svg>
 			</button>
-		</div>
-
-		<div class="abs top:50% right:30px translateY(-50%) flex flex:column ai:center gap:20px">
-			<span class="f:0.85rem font-weight:700 fg:base-3 white-space:nowrap">ループ回数</span>
-			<div class="flex flex:column ai:center gap:10px">
-				<button
-					aria-label="btn"
-					class="arrow-btn-sm"
-					onclick={() => (loopCount = Math.min(loopCount + 1, 99))}
-				>
-					<svg width="14" height="9" viewBox="0 0 14 9"
-						><path
-							d="M1 8L7 2L13 8"
-							class="stroke:base-2"
-							stroke-width="2"
-							stroke-linecap="round"
-						/></svg
-					>
-				</button>
-				<span
-					class="f:3.75rem w:100px square r:100px bg:base-6 flex ai:center jc:center font-weight:600 fg:base-2 line-h:1"
-					>{loopCount}</span
-				>
-				<button
-					aria-label="btn"
-					class="arrow-btn-sm"
-					onclick={() => (loopCount = Math.max(loopCount - 1, 1))}
-				>
-					<svg width="14" height="9" viewBox="0 0 14 9"
-						><path
-							d="M1 1L7 7L13 1"
-							class="stroke:base-2"
-							stroke-width="2"
-							stroke-linecap="round"
-						/></svg
-					>
-				</button>
-			</div>
 		</div>
 	{:else}
 		<div

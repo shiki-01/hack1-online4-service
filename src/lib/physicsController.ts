@@ -27,10 +27,9 @@ export const physicsClickCount = writable<number>(0);
 
 /**
  * ノブでページナビゲーション(モード切替)を行うか否か。
- * true  → ノブ回転でページ切替
- * false → 各ページ固有のノブ動作
+ * false → 各ページ固有のノブ動作（固定）
  */
-export const modeSwitchEnabled = writable<boolean>(true);
+export const modeSwitchEnabled = writable<boolean>(false);
 
 // ---- External API ----
 
