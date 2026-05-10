@@ -24,4 +24,7 @@ Thumbs.db
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
+# Sessions (contains OAuth tokens)
+.sessions.json
+
 /.claude

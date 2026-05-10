@@ -68,7 +68,7 @@ const translations: Record<Locale, Strings> = {
 		loopCount: 'ループ回数',
 		noDescription: '説明なし',
 		list: '一覧',
-		tasks: 'タスク',
+		tasks: 'Task',
 		weekdays: ['日','月','火','水','木','金','土'],
 		formatArcDate: (d) => {
 			const wd = ['日','月','火','水','木','金','土'][d.getDay()];

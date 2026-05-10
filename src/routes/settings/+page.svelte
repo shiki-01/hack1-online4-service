@@ -299,7 +299,7 @@
 							同期
 						</button>
 						<a
-							href="/auth/logout"
+							href={resolve("/auth/logout")}
 							class="f:0.65rem font-weight:600 px:9px py:3px r:99px"
 							style="background: #2a1a1a; border: 1px solid #4a2a2a; color: #cc5555; text-decoration:none; display:flex; align-items:center;"
 						>
@@ -309,7 +309,7 @@
 				</div>
 			{:else}
 				<a
-					href="/auth/login"
+					href={resolve("/auth/login")}
 					class="f:0.65rem font-weight:700 px:12px py:4px r:99px"
 					style="background: #1a1a2a; border: 1px solid #3a3a6a; color: #8888ee; text-decoration:none;"
 				>

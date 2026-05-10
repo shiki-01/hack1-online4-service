@@ -14,14 +14,23 @@ import type { LocalTask } from './localTasks';
 
 export const isAuthenticated = writable(false);
 
+const POLL_INTERVAL_MS = 30_000; // 30秒ごとに同期
+let pollTimer: ReturnType<typeof setInterval> | null = null;
+
 /**
  * レイアウト起動時に呼ぶ。
- * authed=true なら Google Tasks を取得して localTasks に反映する。
+ * authed=true なら Google Tasks を取得して localTasks に反映し、
+ * 30秒ごとのポーリングを開始する。
  */
 export async function initGoogleTasks(authed: boolean): Promise<void> {
 	isAuthenticated.set(authed);
+	if (pollTimer) {
+		clearInterval(pollTimer);
+		pollTimer = null;
+	}
 	if (!authed) return;
 	await syncGoogleTasks();
+	pollTimer = setInterval(syncGoogleTasks, POLL_INTERVAL_MS);
 }
 
 /**

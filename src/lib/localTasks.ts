@@ -11,7 +11,7 @@
  *   LocalTask.status      → Google Task.status ('needsAction' | 'completed')
  *
  *   priority / category / subtasks は Google Tasks にない独自フィールド。
- *   移行時は Firestore 等のサブコレクションで補完する想定。
+ *   これらはローカルキャッシュのみで管理する。
  */
 
 import { writable, derived, get } from 'svelte/store';
