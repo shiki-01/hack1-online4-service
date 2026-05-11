@@ -218,7 +218,7 @@
 	const hourDeg = $derived((((h % 12) + m / 60 + s / 3600) / 12) * 360);
 	const numerals = Array.from({ length: 12 }, (_, i) => i + 1);
 	const ui = $derived(t($currentLocale));
-	const dateStr = $derived(`${mo}月${d}日 (${ui.weekdays[wd]})`);
+	const _dateStr = $derived(`${mo}月${d}日 (${ui.weekdays[wd]})`);
 	const dateStrLocalized = $derived(ui.formatArcDate(now));
 </script>
 

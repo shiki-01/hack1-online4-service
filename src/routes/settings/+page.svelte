@@ -235,7 +235,7 @@
 	}
 
 	// 現在の言語ファイルが存在するか
-	const hasCurrentLangFile = $derived(!!get(langFiles)[$currentLocale]);
+	const _hasCurrentLangFile = $derived(!!get(langFiles)[$currentLocale]);
 </script>
 
 <div

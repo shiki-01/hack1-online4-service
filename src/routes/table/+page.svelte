@@ -152,7 +152,7 @@
 		const bgEl = el.querySelector(
 			dir === 'right' ? '.swipe-bg-right' : '.swipe-bg-left'
 		) as HTMLElement | null;
-		const iconEl = el.querySelector(
+		const _iconEl = el.querySelector(
 			dir === 'right' ? '.swipe-icon-right' : '.swipe-icon-left'
 		) as HTMLElement | null;
 

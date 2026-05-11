@@ -15,6 +15,7 @@
 - **常に main ブランチで直接作業する。ブランチを作成してはいけない。**
 - **コミット・プッシュは基本的に行わない**
 - **npm パッケージを追加するときは、追加前に必ず確認を取ること**
+- **実装内容に応じて `CLAUDE.md` と `requirements.md` を自分で適宜更新すること**
 
 ## 技術スタック
 
@@ -46,10 +47,29 @@ LocalTask ストア（Svelte Store + ローカルキャッシュ）
 ```
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
-GOOGLE_REDIRECT_URI=http://localhost:5173/api/auth/callback
-VITE_IS_PHYSICS=true       # 物理ノブ入力の有効化
-VITE_CURSOR_VISIBLE=false  # Kioskモードでカーソル非表示
+GOOGLE_REDIRECT_URI=        # ローカルログイン用（開発時のみ・通常不要）
+STACKS_WORKER_URL=          # Cloudflare Worker の URL（例: https://stacks-auth.xxx.workers.dev）
+STACKS_WORKER_SECRET=       # Worker との共有シークレット
+VITE_IS_PHYSICS=true        # 物理ノブ入力の有効化
+VITE_CURSOR_VISIBLE=false   # Kioskモードでカーソル非表示
 ```
+
+### Cloudflare Worker（`worker/`）
+
+ローカル IP に依存しない Google OAuth リレーサーバー。無料枠内に収まるよう 300 セッション/日のレートリミットを実装済み。
+
+```
+worker/
+  src/index.ts    # Worker 本体
+  wrangler.toml   # デプロイ設定（KV ID を記入してから使う）
+  tsconfig.json
+```
+
+npm スクリプト:
+- `npm run worker:login` — Cloudflare にログイン
+- `npm run worker:kv-create` — KV Namespace 作成（初回のみ）
+- `npm run worker:deploy` — デプロイ
+- `npm run worker:secret` — シークレット設定
 
 ## 主要ファイル
 

@@ -8,12 +8,15 @@ interface PendingSession {
 	expiresAt: number;
 }
 
-const EXPIRY_MS = 5 * 60 * 1000;
+const EXPIRY_MS = 30 * 60 * 1000;
 
 const pending = new Map<string, PendingSession>();
 
-export function createPendingId(): string {
-	return crypto.randomBytes(16).toString('hex');
+export function createPending(id: string): void {
+	pending.set(id, {
+		status: 'waiting',
+		expiresAt: Date.now() + EXPIRY_MS
+	});
 }
 
 export function getPending(id: string): PendingSession | undefined {
@@ -25,17 +28,14 @@ export function getPending(id: string): PendingSession | undefined {
 	return entry;
 }
 
-export function createPending(id: string): void {
-	pending.set(id, {
-		status: 'waiting',
-		expiresAt: Date.now() + EXPIRY_MS
-	});
-}
-
 export function completePending(id: string, sessionId: string): boolean {
 	const entry = pending.get(id);
 	if (!entry || Date.now() > entry.expiresAt) return false;
 	entry.status = 'authenticated';
 	entry.sessionId = sessionId;
 	return true;
+}
+
+export function createPendingId(): string {
+	return crypto.randomBytes(16).toString('hex');
 }

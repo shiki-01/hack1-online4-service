@@ -13,9 +13,15 @@
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"lint": "prettier --check . && eslint .",
-		"format": "prettier --write ."
+		"format": "prettier --write .",
+		"worker:login": "wrangler login",
+		"worker:kv-create": "wrangler kv namespace create AUTH --config worker/wrangler.toml",
+		"worker:dev": "wrangler dev --config worker/wrangler.toml",
+		"worker:deploy": "wrangler deploy --config worker/wrangler.toml",
+		"worker:secret": "wrangler secret put --config worker/wrangler.toml"
 	},
 	"devDependencies": {
+		"@cloudflare/workers-types": "^4.20260511.1",
 		"@eslint/compat": "^2.0.4",
 		"@eslint/js": "^10.0.1",
 		"@sveltejs/adapter-node": "^5.5.4",
@@ -35,7 +41,8 @@
 		"svelte-check": "^4.4.6",
 		"typescript": "^6.0.2",
 		"typescript-eslint": "^8.58.1",
-		"vite": "^8.0.7"
+		"vite": "^8.0.7",
+		"wrangler": "^4.90.0"
 	},
 	"dependencies": {
 		"@master/css": "^2.0.0-rc.69",

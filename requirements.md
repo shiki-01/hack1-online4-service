@@ -56,7 +56,10 @@ SvelteKit 2 + Svelte 5 + Vite
 ### 3.2 認証・外部連携
 
 - **Firebase は使用しない**
-- Google OAuth 2.0 を SvelteKit サーバーサイドで直接実装
+- **Cloudflare Worker リレー**経由でスマホから Google OAuth 認証
+  - Worker が固定 URL（`https://stacks-auth.xxx.workers.dev/callback`）でトークンを受け取る
+  - ローカル IP に依存しないため販売・量産に対応
+  - 無料枠超過防止のため 300 セッション/日のレートリミットを実装
 - セッションはファイル永続化（`.sessions.json`）
   - サーバー再起動後もログイン状態を維持
   - `SESSIONS_FILE` 環境変数でパス変更可能
@@ -65,12 +68,15 @@ SvelteKit 2 + Svelte 5 + Vite
 
 ```
 SvelteKit API Routes（adapter-node）
-├── /auth/login      - OAuth 開始（Google 認証ページへリダイレクト）
-├── /auth/callback   - コールバック・トークン取得・セッション保存
-├── /auth/logout     - セッション削除
-├── /api/tasks       - GET: タスク一覧取得
-├── /api/tasks/[id]  - PATCH: 完了 / DELETE: 削除
-└── /api/rotation    - Raspberry Pi 物理入力（SSE）
+├── /auth/login               - OAuth 開始（デバイス本体ブラウザ用・開発時のみ想定）
+├── /auth/callback            - コールバック・トークン取得・セッション保存
+├── /auth/logout              - セッション削除
+├── /auth/qr-complete         - Device Flow 完了後に Cookie をセットしてリダイレクト
+├── /api/auth/device/start    - Device Flow 開始（device_code 取得）
+├── /api/auth/device/poll     - トークンポーリング（クライアントから定期呼び出し）
+├── /api/tasks                - GET: タスク一覧取得
+├── /api/tasks/[id]           - PATCH: 完了 / DELETE: 削除
+└── /api/rotation             - Raspberry Pi 物理入力（SSE）
 ```
 
 ---
@@ -79,12 +85,15 @@ SvelteKit API Routes（adapter-node）
 
 ### 4.1 セットアップフロー（初回のみ）
 
-デバイスへのキー入力なし、QR コード中心の設計：
+デバイスへのキー入力なし、QR コード + Device Flow 設計：
 
-1. デバイスが WiFi AP モードで起動、接続用 QR をディスプレイに表示
-2. スマホで QR スキャン → `192.168.4.1` のフォームに接続
-3. WiFi 情報 + Google OAuth 承認を同一画面で完了
-4. デバイスが通常 WiFi に接続、以降は自動運用
+1. Settings ページで「QR でログイン」を選択
+2. デバイスが Google から `device_code` を取得し QR コードとコード文字列を表示
+3. スマホで QR スキャン（または `google.com/device` に手動アクセス）
+4. スマホ側で Google アカウントを選択・承認
+5. デバイス側がポーリングでトークン取得 → セッション確立・自動運用開始
+
+**ポイント**: redirect URI が不要なため、ローカル IP やネットワーク構成に依存しない。量産・販売に対応。
 
 ### 4.2 同期戦略
 
@@ -137,11 +146,18 @@ SvelteKit API Routes（adapter-node）
 ```
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
-GOOGLE_REDIRECT_URI=http://localhost/auth/callback   # 本番
-# GOOGLE_REDIRECT_URI=http://localhost:5173/auth/callback  # 開発
-SESSIONS_FILE=/home/pi/stacks/.sessions.json        # 本番（任意）
+STACKS_WORKER_URL=https://stacks-auth.xxx.workers.dev   # Cloudflare Worker URL
+STACKS_WORKER_SECRET=                                   # Worker との共有シークレット
+SESSIONS_FILE=/home/pi/stacks/.sessions.json            # 本番（任意）
 VITE_IS_PHYSICS=true       # 物理ノブ入力の有効化
 VITE_CURSOR_VISIBLE=false  # キオスクモードでカーソル非表示
+```
+
+Worker 側のシークレット（`npm run worker:secret` で設定）:
+```
+GOOGLE_CLIENT_ID     # SvelteKit と同じ値
+GOOGLE_CLIENT_SECRET # SvelteKit と同じ値
+WORKER_SECRET        # SvelteKit の STACKS_WORKER_SECRET と同じ値
 ```
 
 ---
@@ -151,6 +167,7 @@ VITE_CURSOR_VISIBLE=false  # キオスクモードでカーソル非表示
 ```
 Phase 1（完了）: ローカルタスク管理・UI・物理入力
 Phase 2（完了）: Google OAuth 2.0 + Google Tasks API 連携・セッション永続化
-Phase 3（進行中）: アダプティブポーリング・差分同期
-Phase 4: 筐体設計（3D プリンター）・ディスプレイ組み込み・本番デプロイ
+Phase 3（完了）: OAuth Device Flow によるスマホ QR ログイン（量産対応）
+Phase 4（進行中）: アダプティブポーリング・差分同期
+Phase 5: 筐体設計（3D プリンター）・ディスプレイ組み込み・本番デプロイ
 ```
