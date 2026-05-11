@@ -308,13 +308,22 @@
 					</div>
 				</div>
 			{:else}
-				<a
-					href={resolve("/auth/login")}
-					class="f:0.65rem font-weight:700 px:12px py:4px r:99px"
-					style="background: #1a1a2a; border: 1px solid #3a3a6a; color: #8888ee; text-decoration:none;"
-				>
-					Google でログイン
-				</a>
+				<div class="flex flex:column ai:center gap:4px">
+					<a
+						href={resolve("/settings/qr")}
+						class="f:0.65rem font-weight:700 px:12px py:4px r:99px"
+						style="background: #1a1a2a; border: 1px solid #3a3a6a; color: #8888ee; text-decoration:none; text-align:center;"
+					>
+						QR でログイン
+					</a>
+					<a
+						href={resolve("/auth/login")}
+						class="f:0.6rem px:8px py:2px r:99px"
+						style="color: #444; text-decoration:none; text-align:center;"
+					>
+						ブラウザでログイン
+					</a>
+				</div>
 			{/if}
 		</div>
 	</div>
