@@ -8,6 +8,15 @@
 
 詳細は [requirements.md](./requirements.md) を参照。
 
+## プロダクト性質（重要）
+
+このソフトウェアは**エンドユーザーが購入して使う製品**のファームウェアである。
+
+- エンドユーザーは `.env` ファイルを直接編集しない・できない
+- デバイスはキーボードなし・タッチなし・物理ノブのみで操作
+- 初回設定（WiFi 接続・Google ログイン）はすべて**スマホ QR フロー**で完結させる
+- `.env` の設定はデバイス製造時・デプロイ時にのみ行う（ユーザー操作ではない）
+
 ## 作業ルール
 
 > **IMPORTANT: 以下のルールは必ず守ること。**
@@ -44,6 +53,9 @@ LocalTask ストア（Svelte Store + ローカルキャッシュ）
 ```
 
 ### 環境変数（`.env`）
+
+> 以下はすべて**製造・デプロイ時**に設定。エンドユーザーは触らない。
+
 ```
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
@@ -52,6 +64,8 @@ STACKS_WORKER_URL=          # Cloudflare Worker の URL（例: https://stacks-au
 STACKS_WORKER_SECRET=       # Worker との共有シークレット
 VITE_IS_PHYSICS=true        # 物理ノブ入力の有効化
 VITE_CURSOR_VISIBLE=false   # Kioskモードでカーソル非表示
+WIFI_AP_SSID=STACKS-Setup   # デバイス自身のホットスポット SSID（デフォルト可）
+WIFI_AP_PASSWORD=stacks1234 # デバイス自身のホットスポットパスワード（デフォルト可）
 ```
 
 ### Cloudflare Worker（`worker/`）
@@ -81,6 +95,23 @@ npm スクリプト:
 | `src/lib/languageStore.ts` | 多言語対応（ja/en/zh-Hans/zh-Hant/de/es/fr） |
 | `src/routes/api/rotation/` | Raspberry Pi からの SSE イベント受信 |
 | `src/routes/+layout.svelte` | SSE 接続・ページ遷移アニメーション |
+| `src/routes/setup/+page.svelte` | WiFi 初期設定ページ（スマホブラウザ向け・`position:fixed` で全画面） |
+| `src/routes/settings/wifi/+page.svelte` | デバイス AP の QR コード表示（720×720 デバイス画面） |
+| `src/routes/api/setup/wifi/+server.ts` | WiFi 接続 API（`nmcli` 呼び出し） |
+
+## WiFi 初期設定フロー
+
+エンドユーザーがデバイスを購入後、初めて WiFi に接続するまでの流れ：
+
+1. デバイス起動 → OS 側で AP（ホットスポット）モードを起動（`hostapd` + `dnsmasq` は OS 設定）
+2. Settings → WiFi → デバイス自身の AP 用 QR コードを表示
+3. スマホで QR スキャン → `STACKS-Setup` ホットスポットに接続
+4. スマホブラウザで `http://192.168.4.1/setup` を開く
+5. 家の WiFi の SSID とパスワードを入力して送信
+6. `/api/setup/wifi` が `nmcli dev wifi connect <SSID> password <PASSWORD> ifname wlan0` を実行
+7. デバイスが家の WiFi に接続完了 → AP モード終了
+
+**ポイント**: AP モード (`hostapd` / `dnsmasq`) の起動は OS レベルの設定で行う。SvelteKit はセットアップ UI と `nmcli` 呼び出しのみ担当。
 
 ## Google Tasks 連携（実装予定）
 
@@ -110,6 +141,7 @@ npm スクリプト:
 - **タッチ操作なし**: `touch-action: none`（物理ノブで操作）
 - **カーソル非表示**: Kiosk モード
 - **ダークテーマ**: デフォルト
+- **例外**: `/setup` はスマホブラウザ向け。`position: fixed` でルートレイアウトの円を上書きし全画面表示する
 
 ## ページ構成
 
@@ -120,4 +152,7 @@ npm スクリプト:
 | `/stack` | タスクのバブル可視化（物理演算） |
 | `/pomodoro` | ポモドーロタイマー（ノブで操作） |
 | `/table` | タスク一覧（3D回転カルーセル） |
-| `/settings` | 言語設定・タスクJSON編集 |
+| `/settings` | 言語設定・Google 認証・WiFi QR・タスクJSON編集 |
+| `/settings/wifi` | デバイス AP の QR コード表示（WiFi 設定入口） |
+| `/settings/qr` | Google Login QR コード表示 |
+| `/setup` | WiFi 初期設定フォーム（スマホ向け・全画面） |

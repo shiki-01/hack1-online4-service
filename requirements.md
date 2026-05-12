@@ -6,6 +6,7 @@
 - **キャッチコピー**: 忙しさを、美しく
 - **目的**: 溜まったタスクの解消をより楽しく・簡単にするインテリア型タスク管理デバイス
 - **ターゲット**: 日常タスク管理を楽しくしたい個人ユーザー（学生/ビジネスパーソン）
+- **販売形態**: 完成品として販売。エンドユーザーはデバイス本体を受け取り、キーボードなし・設定ファイル編集なしで初期セットアップを完了できることが必須要件
 
 ---
 
@@ -81,9 +82,42 @@ SvelteKit API Routes（adapter-node）
 
 ---
 
-## 4. Google Tasks 連携
+## 4. 初回セットアップ（WiFi 接続）
 
-### 4.1 セットアップフロー（初回のみ）
+### 4.1 前提
+
+エンドユーザーはデバイスを購入後、キーボードなし・`.env` 編集なしで WiFi に接続する必要がある。
+
+### 4.2 セットアップフロー
+
+1. デバイス起動 → OS 側で AP（ホットスポット）モードを起動
+   - SSID: `STACKS-Setup`（`WIFI_AP_SSID` 環境変数で変更可）
+   - パスワード: `stacks1234`（`WIFI_AP_PASSWORD` 環境変数で変更可）
+   - IP: `192.168.4.1`（`hostapd` + `dnsmasq` による OS 設定）
+2. Settings → WiFi → デバイス AP の QR コードを表示 (`/settings/wifi`)
+3. スマホで QR スキャン → `STACKS-Setup` ホットスポットに接続
+4. スマホブラウザで `http://192.168.4.1/setup` を開く
+5. 家の WiFi の SSID とパスワードを入力して送信
+6. `/api/setup/wifi` が `nmcli dev wifi connect` を実行
+7. デバイスが家の WiFi に接続完了
+
+### 4.3 実装範囲
+
+| 担当 | 内容 |
+|---|---|
+| **SvelteKit（このリポジトリ）** | AP QR 表示 (`/settings/wifi`)、セットアップ UI (`/setup`)、WiFi 適用 API (`/api/setup/wifi`) |
+| **OS 設定（別途）** | `hostapd` + `dnsmasq` による AP モード起動、`NetworkManager` / `nmcli` の導入 |
+
+### 4.4 UI 設計上の注意
+
+- `/setup` ページはスマホブラウザで表示される。`position: fixed; inset: 0` でルートレイアウトの 720×720 円を覆い、全画面表示する
+- `/settings/wifi` ページは 720×720 デバイス画面用（通常のレイアウト内）
+
+---
+
+## 5. Google Tasks 連携
+
+### 5.1 セットアップフロー（初回のみ）
 
 デバイスへのキー入力なし、QR コード + Device Flow 設計：
 
@@ -95,19 +129,19 @@ SvelteKit API Routes（adapter-node）
 
 **ポイント**: redirect URI が不要なため、ローカル IP やネットワーク構成に依存しない。量産・販売に対応。
 
-### 4.2 同期戦略
+### 5.2 同期戦略
 
 - **ポーリング方式**（Google Tasks API にプッシュ通知がないため）
 - アダプティブポーリング（操作中: 15秒 / アイドル: 5分）
 - `updatedMin` パラメータで差分のみ取得（通信量削減）
 - サーバー再起動時もセッションはファイルから復元
 
-### 4.3 クォータ
+### 5.3 クォータ
 
 - Google Tasks API: 50,000リクエスト/日/ユーザー
 - 1台・1ユーザー運用では問題なし（15秒ポーリングでも最大5,760/日）
 
-### 4.4 フィールドマッピング
+### 5.4 フィールドマッピング
 
 | LocalTask | Google Tasks API |
 |---|---|
@@ -121,27 +155,33 @@ SvelteKit API Routes（adapter-node）
 
 ---
 
-## 5. ページ構成
+## 6. ページ構成
 
-| ルート | 内容 |
-|---|---|
-| `/clock` | アナログ時計 + ポモドーロタイマー + 残りタスク数 |
-| `/stack` | タスクをボールとして物理演算で可視化（期限・優先度で色変化） |
-| `/table` | タスク一覧。スワイプ右で完了、スワイプ左で削除 |
-| `/settings` | 言語設定・Google 認証・隠し設定エディタ |
+| ルート | 対象 | 内容 |
+|---|---|---|
+| `/clock` | デバイス | アナログ時計 + ポモドーロタイマー + 残りタスク数 |
+| `/stack` | デバイス | タスクをボールとして物理演算で可視化（期限・優先度で色変化） |
+| `/table` | デバイス | タスク一覧。スワイプ右で完了、スワイプ左で削除 |
+| `/settings` | デバイス | 言語設定・Google 認証・WiFi QR・隠し設定エディタ |
+| `/settings/wifi` | デバイス | デバイス AP の QR コード表示 |
+| `/settings/qr` | デバイス | Google Login QR コード表示 |
+| `/setup` | **スマホ** | WiFi 初期設定フォーム（全画面・スマホブラウザ向け） |
 
 ---
 
-## 6. UI・表示制約
+## 7. UI・表示制約
 
 - **固定解像度**: 720×720px（円形ディスプレイ）
 - **タッチ操作なし**: `touch-action: none`（物理ノブで操作）
 - **カーソル非表示**: キオスクモード
 - **ダークテーマ**: デフォルト（インテリアとしての外観）
+- **例外 (`/setup`)**: スマホブラウザ向けのため `position: fixed; inset: 0` で全画面表示
 
 ---
 
-## 7. 環境変数
+## 8. 環境変数
+
+> すべて製造・デプロイ時に設定。エンドユーザーは編集しない。
 
 ```
 GOOGLE_CLIENT_ID=
@@ -151,6 +191,8 @@ STACKS_WORKER_SECRET=                                   # Worker との共有シ
 SESSIONS_FILE=/home/pi/stacks/.sessions.json            # 本番（任意）
 VITE_IS_PHYSICS=true       # 物理ノブ入力の有効化
 VITE_CURSOR_VISIBLE=false  # キオスクモードでカーソル非表示
+WIFI_AP_SSID=STACKS-Setup  # デバイス自身のホットスポット SSID（省略時: STACKS-Setup）
+WIFI_AP_PASSWORD=stacks1234  # デバイス自身のホットスポットパスワード（省略時: stacks1234）
 ```
 
 Worker 側のシークレット（`npm run worker:secret` で設定）:
@@ -162,12 +204,13 @@ WORKER_SECRET        # SvelteKit の STACKS_WORKER_SECRET と同じ値
 
 ---
 
-## 8. 開発フェーズ
+## 9. 開発フェーズ
 
 ```
 Phase 1（完了）: ローカルタスク管理・UI・物理入力
 Phase 2（完了）: Google OAuth 2.0 + Google Tasks API 連携・セッション永続化
 Phase 3（完了）: OAuth Device Flow によるスマホ QR ログイン（量産対応）
-Phase 4（進行中）: アダプティブポーリング・差分同期
-Phase 5: 筐体設計（3D プリンター）・ディスプレイ組み込み・本番デプロイ
+Phase 4（完了）: WiFi 初期設定フロー（AP モード QR + スマホ設定 UI）
+Phase 5（進行中）: アダプティブポーリング・差分同期
+Phase 6: 筐体設計（3D プリンター）・ディスプレイ組み込み・本番デプロイ
 ```
