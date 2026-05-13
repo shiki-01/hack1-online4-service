@@ -6,8 +6,8 @@
 
 	let { data } = $props();
 
-	let canvasEl = $state<HTMLCanvasElement | undefined>();
-	let ready = $state(false);
+	let qrDataUrl = $state<string>('');
+	let error = $state<string>('');
 
 	function escapeWifi(val: string): string {
 		return val
@@ -19,14 +19,16 @@
 	}
 
 	onMount(async () => {
-		if (!canvasEl) return;
-		const wifiStr = `WIFI:T:WPA;S:${escapeWifi(data.apSsid)};P:${escapeWifi(data.apPassword)};;`;
-		await QRCode.toCanvas(canvasEl, wifiStr, {
-			width: 220,
-			margin: 2,
-			color: { dark: '#111111', light: '#f0f0f0' }
-		});
-		ready = true;
+		try {
+			const wifiStr = `WIFI:T:WPA;S:${escapeWifi(data.apSsid)};P:${escapeWifi(data.apPassword)};;`;
+			qrDataUrl = await QRCode.toDataURL(wifiStr, {
+				width: 220,
+				margin: 2,
+				color: { dark: '#111111', light: '#f0f0f0' }
+			});
+		} catch (e) {
+			error = String(e);
+		}
 	});
 </script>
 
@@ -64,15 +66,18 @@
 			flex-shrink: 0;
 		"
 	>
-		<canvas bind:this={canvasEl} style="display: block;"></canvas>
-		{#if !ready}
-			<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#1a1a1a;border-radius:16px;">
+		{#if qrDataUrl}
+			<img src={qrDataUrl} alt="WiFi QR Code" style="width: 220px; height: 220px; display: block;" />
+		{:else if error}
+			<span style="color:#cc3333;font-size:0.6rem;padding:8px;text-align:center;">{error}</span>
+		{:else}
+			<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
 				<span style="color:#555;font-size:0.7rem;">読み込み中…</span>
 			</div>
 		{/if}
 	</div>
 
-	{#if ready}
+	{#if qrDataUrl}
 		<span style="color:#555;font-size:0.62rem;margin-top:14px;text-align:center;line-height:1.7;">
 			{data.apSsid}
 		</span>

@@ -45,11 +45,14 @@
 
 		{#if status === 'success'}
 			<div style="text-align: center; padding: 40px 0;">
-				<div style="font-size: 3rem; margin-bottom: 16px;">✅</div>
-				<p style="color: #4ECDC4; font-size: 1rem; font-weight: 600; margin: 0 0 8px;">Wi-Fi 接続成功</p>
-				<p style="color: #555; font-size: 0.8rem; margin: 0; line-height: 1.6;">
-					デバイスがネットワークに接続しました。<br>
-					このページを閉じてください。
+				<div style="font-size: 3rem; margin-bottom: 16px;">📡</div>
+				<p style="color: #4ECDC4; font-size: 1rem; font-weight: 600; margin: 0 0 8px;">接続中…</p>
+				<p style="color: #555; font-size: 0.8rem; margin: 0; line-height: 1.8;">
+					デバイスが Wi-Fi への接続を試みています。<br>
+					30 秒ほど待ってからデバイスの画面を確認してください。<br><br>
+					<span style="color: #444; font-size: 0.72rem;">
+						※ 接続が完了すると STACKS-Setup は切断されます
+					</span>
 				</p>
 			</div>
 

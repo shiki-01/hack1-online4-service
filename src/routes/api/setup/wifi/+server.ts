@@ -28,10 +28,12 @@ export const POST: RequestHandler = async ({ request }) => {
 		return json({ success: false, error: 'SSID を入力してください' }, { status: 400 });
 	}
 
-	try {
-		await nmcliConnect(ssid, password);
-		return json({ success: true });
-	} catch (e) {
-		return json({ success: false, error: (e as Error).message }, { status: 500 });
-	}
+	// nmcli を非同期で起動し、レスポンスを先に返す。
+	// WiFi 接続が成功すると AP が切れてスマホとの HTTP 接続が途切れるため、
+	// await すると fetch が永遠にハングする。
+	setTimeout(() => {
+		nmcliConnect(ssid, password).catch(() => {/* OS ログに任せる */});
+	}, 300);
+
+	return json({ success: true });
 };
