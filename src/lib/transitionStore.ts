@@ -5,9 +5,3 @@ import { writable } from 'svelte/store';
  * beforeNavigate で from/to がセットされる
  */
 export const pageTransition = writable<{ from: string; to: string } | null>(null);
-
-/**
- * true のとき次の beforeNavigate は cancel せずにそのまま通す
- * （要素アニメーション完了後の再ナビゲート用）
- */
-export const skipAnimationOnce = writable(false);

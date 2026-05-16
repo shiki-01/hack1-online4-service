@@ -1,6 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { untrack } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import { get } from 'svelte/store';
 	import { pendingTasks } from '$lib/localTasks';
 	import { currentLocale } from '$lib/languageStore';
@@ -19,10 +18,8 @@
 	import CircleClock from '$lib/components/CircleClock.svelte';
 	import TaskCount from '$lib/components/TaskCount.svelte';
 	import gsap from 'gsap';
-	import { goto } from '$app/navigation';
-	import { pageTransition, skipAnimationOnce } from '$lib/transitionStore';
+	import { usePageAnimation } from '$lib/usePageAnimation';
 	import { EASE_OUT, EASE_IN } from '$lib/easings';
-	import { resolve } from '$app/paths';
 
 	const IS_PHYSICS = import.meta.env.VITE_IS_PHYSICS === 'true';
 	const STEP_DEG = 5;
@@ -76,7 +73,6 @@
 		});
 	});
 
-	let exitTl: gsap.core.Timeline | undefined;
 	let frameId: number | undefined;
 
 	let pageEl: HTMLDivElement | undefined = $state();
@@ -86,186 +82,46 @@
 
 	onMount(() => {
 		resetBases();
-
-		const tick = () => {
-			frameId = requestAnimationFrame(tick);
-		};
+		const tick = () => { frameId = requestAnimationFrame(tick); };
 		frameId = requestAnimationFrame(tick);
-		const t = get(pageTransition);
-		const taskCountNode = taskCountEl?.firstElementChild as HTMLElement | null;
-		const circleClockNode = circleClockEl?.firstElementChild as HTMLElement | null;
-
-		if (t?.from === '/table' && pageEl && clockEl) {
-			gsap.from(taskCountNode, { y: -400, duration: 0.3, ease: EASE_OUT });
-			gsap.from(clockEl, { scale: 0.9, duration: 0.3, ease: EASE_OUT });
-			gsap.from(pageEl, { width: 720, duration: 0.35, ease: EASE_OUT });
-		} else if (t?.from === '/clock') {
-			const tl = gsap.timeline();
-			tl.from(
-				taskCountNode,
-				{
-					transform: 'translate(-50%,-130px)',
-					duration: 0.4,
-					ease: EASE_OUT
-				},
-				0
-			);
-			tl.from(
-				circleClockNode,
-				{
-					opacity: 0,
-					duration: 0.4,
-					ease: EASE_OUT
-				},
-				0
-			);
-			if (pageEl) {
-				tl.from(
-					pageEl,
-					{
-						transform: 'translate(-100%,-50%)',
-						duration: 0.4,
-						ease: EASE_OUT
-					},
-					0
-				);
-			}
-		} else if (t?.from === '/stack') {
-			const tl = gsap.timeline();
-			if (pageEl) {
-				tl.from(
-					pageEl,
-					{
-						transform: 'translate(0,-50%)',
-						duration: 0.4,
-						ease: EASE_OUT
-					},
-					0
-				);
-			}
-		}
-
-		return () => {
-			if (frameId !== undefined) cancelAnimationFrame(frameId);
-		};
+		return () => { if (frameId !== undefined) cancelAnimationFrame(frameId); };
 	});
 
-	$effect(() => {
-		const t = $pageTransition;
-		if (!t || t.from !== '/pomodoro' || t.to !== '/table') return;
-		const taskCountNode = taskCountEl?.firstElementChild as HTMLElement | null;
-		const circleClockNode = circleClockEl?.firstElementChild as HTMLElement | null;
-
-		exitTl?.kill();
-		const tl = gsap.timeline({
-			onComplete: () => {
-				skipAnimationOnce.set(true);
-				goto(resolve('/table'));
+	usePageAnimation({
+		animateIn(from) {
+			const taskCountNode = taskCountEl?.firstElementChild as HTMLElement | null;
+			const circleClockNode = circleClockEl?.firstElementChild as HTMLElement | null;
+			if (from === '/table' && pageEl && clockEl) {
+				gsap.from(taskCountNode, { y: -400, duration: 0.3, ease: EASE_OUT });
+				gsap.from(clockEl, { scale: 0.9, duration: 0.3, ease: EASE_OUT });
+				gsap.from(pageEl, { width: 720, duration: 0.35, ease: EASE_OUT });
+			} else if (from === '/clock') {
+				const tl = gsap.timeline();
+				tl.from(taskCountNode, { transform: 'translate(-50%,-130px)', duration: 0.4, ease: EASE_OUT }, 0);
+				tl.from(circleClockNode, { opacity: 0, duration: 0.4, ease: EASE_OUT }, 0);
+				if (pageEl) tl.from(pageEl, { transform: 'translate(-100%,-50%)', duration: 0.4, ease: EASE_OUT }, 0);
+			} else if (from === '/stack') {
+				if (pageEl) gsap.from(pageEl, { transform: 'translate(0,-50%)', duration: 0.4, ease: EASE_OUT });
 			}
-		});
-		exitTl = tl;
+		},
 
-		if (!pageEl || !clockEl) return;
-
-		tl.to(
-			taskCountNode,
-			{
-				y: -400,
-				duration: 0.4,
-				ease: EASE_IN
-			},
-			0
-		);
-		tl.to(
-			circleClockNode,
-			{
-				opacity: 0,
-				duration: 0.4,
-				ease: EASE_IN
-			},
-			0
-		);
-		tl.to(
-			clockEl,
-			{
-				scale: 0.9,
-				duration: 0.28,
-				ease: EASE_IN
-			},
-			0
-		);
-		tl.to(
-			pageEl,
-			{
-				width: 720,
-				duration: 0.28,
-				ease: EASE_IN
-			},
-			0
-		);
-
-		return () => {
-			exitTl?.kill();
-		};
-	});
-
-	/** /pomodoro からの退場アニメーション（共通） */
-	$effect(() => {
-		const t = $pageTransition;
-		if (!t || t.from !== '/pomodoro') return;
-		if (t.to !== '/clock' && t.to !== '/stack' && t.to !== '/settings') return;
-
-		const dest = t.to;
-		const taskCountNode = taskCountEl?.firstElementChild as HTMLElement | null;
-		if (!taskCountNode) return;
-
-		exitTl?.kill();
-		const tl = gsap.timeline({
-			onComplete: () => {
-				skipAnimationOnce.set(true);
-				goto(resolve(dest));
-			}
-		});
-		exitTl = tl;
-
-		if (pageEl) {
-			if (dest === '/clock') {
-				tl.to(
-					pageEl,
-					{
-						transform: 'translate(-100%,-50%)',
-						opacity: 0,
-						duration: 0.2,
-						ease: EASE_IN
-					},
-					0
-				);
-				tl.to(
-					taskCountNode,
-					{
-						transform: 'translate(-50%,-100px) scale(1.2)',
-						duration: 0.2,
-						ease: EASE_IN
-					},
-					0
-				);
+		animateOut(to, done) {
+			const taskCountNode = taskCountEl?.firstElementChild as HTMLElement | null;
+			const circleClockNode = circleClockEl?.firstElementChild as HTMLElement | null;
+			const tl = gsap.timeline({ onComplete: done });
+			if (to === '/table') {
+				tl.to(taskCountNode, { y: -400, duration: 0.4, ease: EASE_IN }, 0);
+				tl.to(circleClockNode, { opacity: 0, duration: 0.4, ease: EASE_IN }, 0);
+				if (clockEl) tl.to(clockEl, { scale: 0.9, duration: 0.28, ease: EASE_IN }, 0);
+				if (pageEl) tl.to(pageEl, { width: 720, duration: 0.28, ease: EASE_IN }, 0);
+			} else if (to === '/clock') {
+				if (pageEl) tl.to(pageEl, { transform: 'translate(-100%,-50%)', opacity: 0, duration: 0.2, ease: EASE_IN }, 0);
+				tl.to(taskCountNode, { transform: 'translate(-50%,-100px) scale(1.2)', duration: 0.2, ease: EASE_IN }, 0);
 			} else {
-				tl.to(
-					pageEl,
-					{
-						transform: 'translate(0%,-50%)',
-						opacity: 0,
-						duration: 0.2,
-						ease: EASE_IN
-					},
-					0
-				);
+				// /stack, /settings
+				if (pageEl) tl.to(pageEl, { transform: 'translate(0%,-50%)', opacity: 0, duration: 0.2, ease: EASE_IN }, 0);
 			}
 		}
-
-		return () => {
-			exitTl?.kill();
-		};
 	});
 
 	const ui = $derived(t($currentLocale));
