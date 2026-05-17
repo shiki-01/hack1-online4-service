@@ -112,17 +112,29 @@
 				if (canvasWrap) tl.to(canvasWrap, { width: 200, height: 200, duration: 0.3, ease: EASE_IN }, 0);
 				tl.to(taskCountNode, { y: -400, duration: 0.3, ease: EASE_IN }, 0);
 				if (pageEl) tl.to(pageEl, { scale: 1, duration: 0.28, ease: EASE_IN }, 0);
-			} else {
-				// /clock, /pomodoro, /settings
-				const tl = gsap.timeline({ onComplete: done });
-				if (to === '/clock') {
-					tl.to(circleClockNode, { opacity: 0, duration: 0.2, ease: EASE_IN }, 0);
-					tl.to(taskCountNode, { transform: 'translate(-50%,-100px) scale(1.2)', duration: 0.2, ease: EASE_IN }, 0);
-				} else if (to === '/pomodoro') {
-					tl.to(taskCountNode, { duration: 0.2, ease: EASE_IN }, 0);
-				}
-				// /settings: タイムラインは空だが onComplete で done() は呼ばれる
+				return;
 			}
+
+			if (to === '/clock') {
+				const tl = gsap.timeline({ onComplete: done });
+				tl.to(circleClockNode, { opacity: 0, duration: 0.2, ease: EASE_IN }, 0);
+				tl.to(taskCountNode, { transform: 'translate(-50%,-100px) scale(1.2)', duration: 0.2, ease: EASE_IN }, 0);
+				return;
+			}
+
+			if (to === '/pomodoro') {
+				const tl = gsap.timeline({ onComplete: done });
+				tl.to(taskCountNode, { duration: 0.2, ease: EASE_IN }, 0);
+				return;
+			}
+
+			if (to === '/settings') {
+				done();
+				return;
+			}
+
+			// 未知の遷移先ではこのページ固有の animateOut を適用しない
+			done();
 		}
 	});
 
