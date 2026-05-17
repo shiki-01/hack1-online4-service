@@ -14,6 +14,8 @@
 	import { physicsRotation, physicsClickCount, modeSwitchEnabled } from '$lib/physicsController';
 	import { get } from 'svelte/store';
 	import { EASE_OUT, EASE_IN } from '$lib/easings';
+	import { resolve } from '$app/paths';
+	import { goto } from '$app/navigation';
 
 	const IS_PHYSICS = import.meta.env.VITE_IS_PHYSICS === 'true';
 	const ITEM_DEG = 30;

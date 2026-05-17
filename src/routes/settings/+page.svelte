@@ -8,6 +8,7 @@
 	import { currentLocale, langFiles, LOCALES, type Locale } from '$lib/languageStore';
 	import { t } from '$lib/i18n';
 	import { syncGoogleTasks } from '$lib/googleTasksStore';
+	import { resolve } from '$app/paths';
 
 	let pageEl: HTMLDivElement | undefined = $state();
 

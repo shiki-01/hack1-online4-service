@@ -3,6 +3,7 @@ import { beforeNavigate, goto } from '$app/navigation';
 import { get } from 'svelte/store';
 import { page } from '$app/state';
 import { pageTransition } from './transitionStore';
+import { resolve } from '$app/paths';
 
 /**
  * Layout が参照するフラグを保持するオブジェクト。
@@ -76,7 +77,7 @@ export function usePageAnimation(handlers: {
 		handlers.animateOut(destPath, () => {
 			skipNext = true;
 			layoutAnimFlags.skip = true;
-			goto(destHref);
+			goto(resolve(destHref));
 		});
 	});
 }
