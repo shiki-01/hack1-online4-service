@@ -17,7 +17,7 @@
 			if (!pageEl) return;
 			if (from === '/table') {
 				gsap.from(pageEl, { scale: 0.94, opacity: 0, duration: 0.35, ease: EASE_OUT });
-			} else {
+			} else if (from === '/clock' || from === '/pomodoro' || from === '/stack') {
 				gsap.from(pageEl, { opacity: 0, duration: 0.3, ease: EASE_OUT });
 			}
 		},
