@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { onMount, untrack } from 'svelte';
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
+	import { usePageAnimation } from '$lib/usePageAnimation';
 	import {
 		pendingTasks,
 		deadlineColor,
@@ -14,8 +13,9 @@
 	import CircleClock from '$lib/components/CircleClock.svelte';
 	import { physicsRotation, physicsClickCount, modeSwitchEnabled } from '$lib/physicsController';
 	import { get } from 'svelte/store';
-	import { pageTransition, skipAnimationOnce } from '$lib/transitionStore';
 	import { EASE_OUT, EASE_IN } from '$lib/easings';
+	import { resolve } from '$app/paths';
+	import { goto } from '$app/navigation';
 
 	const IS_PHYSICS = import.meta.env.VITE_IS_PHYSICS === 'true';
 	const ITEM_DEG = 30;
@@ -312,86 +312,12 @@
 		}
 	});
 
-	let exitTl: gsap.core.Timeline | undefined;
-
-	/** テーブルからの退場アニメーション（共通） */
-	$effect(() => {
-		const t = $pageTransition;
-		if (!t || t.from !== '/table') return;
-		if (!tableContentEl) return;
-
-		const toPath = t.to;
-		exitTl?.kill();
-		const tl = gsap.timeline({
-			onComplete: () => {
-				skipAnimationOnce.set(true);
-				if (toPath === '/clock') {
-					goto(resolve('/clock'));
-				} else if (toPath === '/pomodoro') {
-					goto(resolve('/pomodoro'));
-				} else if (toPath === '/stack') {
-					goto(resolve('/stack'));
-				} else if (toPath === '/settings') {
-					goto(resolve('/settings'));
-				} else if (toPath === '/table') {
-					goto(resolve('/table'));
-				} else if (toPath.startsWith('/table/')) {
-					const id = decodeURIComponent(toPath.slice('/table/'.length));
-					goto(resolve('/table/[id]', { id }));
-				}
-			}
-		});
-		exitTl = tl;
-
-		if (taskCountEl) {
-			tl.to(taskCountEl, {
-				y: 200,
-				scale: 0.9,
-				duration: 0.5,
-				ease: EASE_IN
-			});
-		}
-		const cardEls = tableContentEl.querySelectorAll('.card-inner');
-		if (cardEls.length) {
-			tl.to(
-				cardEls,
-				{
-					opacity: 0,
-					y: -10,
-					duration: 0.2,
-					ease: EASE_IN,
-					stagger: { amount: 0.1, from: 'center' }
-				},
-				0
-			);
-		}
-		tl.to(tableContentEl, { scale: 1.06, duration: 0.28, ease: EASE_IN }, 0);
-
-		return () => {
-			exitTl?.kill();
-		};
-	});
-
-	onMount(() => {
-		if (drum) {
-			currentRotationX = 0;
-			gsap.set(drum, { rotationX: 0 });
-			updateScrollProgress();
-		}
-
-		const t = get(pageTransition);
-		if (t?.from && tableContentEl && taskCountEl) {
-			gsap.from(taskCountEl, {
-				y: 200,
-				scale: 0.9,
-				duration: 0.6,
-				ease: EASE_OUT
-			});
-			gsap.from(tableContentEl, {
-				scale: 1.06,
-				duration: 0.35,
-				ease: EASE_OUT
-			});
+	usePageAnimation({
+		animateIn(_from) {
+			// 遷移元に関わらず同じ入場アニメーション
+			if (!tableContentEl || !taskCountEl) return;
+			gsap.from(taskCountEl, { y: 200, scale: 0.9, duration: 0.6, ease: EASE_OUT });
+			gsap.from(tableContentEl, { scale: 1.06, duration: 0.35, ease: EASE_OUT });
 			const cardEls = tableContentEl.querySelectorAll('.card-inner');
 			if (cardEls.length) {
 				gsap.from(cardEls, {
@@ -400,9 +326,31 @@
 					duration: 0.3,
 					ease: EASE_OUT,
 					stagger: { amount: 0.12, from: 'center' },
-					delay: 0.05
+					delay: 0
 				});
 			}
+		},
+
+		animateOut(_to, done) {
+			// done() を 0.35s で先行発火させ、ナビゲーション処理をアニメーション末尾と重ねてフリーズを隠す
+			const tl = gsap.timeline();
+			if (taskCountEl) tl.to(taskCountEl, { y: 200, scale: 0.9, duration: 0.4, ease: EASE_IN });
+			if (tableContentEl) {
+				const cardEls = tableContentEl.querySelectorAll('.card-inner');
+				if (cardEls.length) {
+					tl.to(cardEls, { opacity: 0, y: -10, duration: 0.4, ease: EASE_IN, stagger: { amount: 0.1, from: 'center' } }, 0);
+				}
+				tl.to(tableContentEl, { scale: 1.06, duration: 0.4, ease: EASE_IN }, 0);
+			}
+			tl.call(done, [], 0.28);
+		}
+	});
+
+	onMount(() => {
+		if (drum) {
+			currentRotationX = 0;
+			gsap.set(drum, { rotationX: 0 });
+			updateScrollProgress();
 		}
 	});
 </script>

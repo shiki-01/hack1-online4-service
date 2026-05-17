@@ -2,18 +2,19 @@
 	import '@master/normal.css';
 	import '../app.css';
 	import { pageIn, pageOut, type TransitionParams } from '$lib/transitions';
-	import { pageTransition, skipAnimationOnce } from '$lib/transitionStore';
-	import { EASE_OUT, EASE_IN, EASE_STANDARD } from '$lib/easings';
+	import { pageTransition } from '$lib/transitionStore';
+	import { layoutAnimFlags } from '$lib/usePageAnimation';
+	import { EASE_OUT, EASE_IN } from '$lib/easings';
 	import { page } from '$app/state';
 	import { goto, beforeNavigate } from '$app/navigation';
 	import { resolve } from '$app/paths';
+	import type { HorizontalRoute, VerticalRoute } from '$lib/types';
 	import {
 		pushRotation,
 		pushClick
 	} from '$lib/physicsController';
 	import PhysicsControls from '$lib/components/PhysicsControls.svelte';
 	import Nav from '$lib/components/Nav.svelte';
-	import { get } from 'svelte/store';
 
 	import { onMount } from 'svelte';
 	import { initGoogleTasks } from '$lib/googleTasksStore';
@@ -58,94 +59,11 @@
 		{ href: '/clock' },
 		{ href: '/stack' },
 		{ href: '/pomodoro' },
-	] as const;
+	] as const satisfies ReadonlyArray<{ href: HorizontalRoute }>;
 
 	// 垂直スワイプ（下から上）で開くページ群
-	const verticalRoutes = ['/table'] as const;
+	const verticalRoutes = ['/table'] as const satisfies ReadonlyArray<VerticalRoute>;
 
-	// ─── ルートごとのアニメーション設定 ────────────────────────────────────
-	type AnimFn = (axis: 'x' | 'y', dir: 1 | -1) => TransitionParams;
-	type RouteAnim = { in: AnimFn; out: AnimFn };
-
-	// サブページなど未定義ルートのフォールバック
-	const defaultAnim: RouteAnim = {
-		in: (axis, dir) => ({
-			x: axis === 'x' ? dir * 560 : 0,
-			y: axis === 'y' ? dir * 560 : 0,
-			duration: 380,
-			ease: 'power3.out'
-		}),
-		out: (axis, dir) => ({
-			x: axis === 'x' ? -dir * 560 : 0,
-			y: axis === 'y' ? -dir * 560 : 0,
-			duration: 320,
-			ease: 'power3.in'
-		})
-	};
-
-	const routeAnimations: Partial<Record<string, RouteAnim>> = {
-		'/pomodoro': {
-			in: (axis, dir) => ({
-				x: axis === 'x' ? dir * 560 : 0,
-				y: axis === 'y' ? dir * 560 : 0,
-				duration: 400,
-				ease: EASE_OUT
-			}),
-			out: (axis, dir) => ({
-				x: axis === 'x' ? -dir * 560 : 0,
-				y: axis === 'y' ? -dir * 560 : 0,
-				duration: 300,
-				ease: EASE_IN
-			})
-		},
-		'/clock': {
-			in: (axis, dir) => ({
-				x: axis === 'x' ? dir * 560 : 0,
-				y: axis === 'y' ? dir * 560 : 0,
-				duration: 380,
-				ease: EASE_OUT
-			}),
-			out: (axis, dir) => ({
-				x: axis === 'x' ? -dir * 560 : 0,
-				y: axis === 'y' ? -dir * 560 : 0,
-				duration: 300,
-				ease: EASE_IN
-			})
-		},
-		'/stack': {
-			in: (axis, dir) => ({
-				x: axis === 'x' ? dir * 560 : 0,
-				y: axis === 'y' ? dir * 560 : 0,
-				duration: 450,
-				ease: EASE_STANDARD
-			}),
-			out: (axis, dir) => ({
-				x: axis === 'x' ? -dir * 560 : 0,
-				y: axis === 'y' ? -dir * 560 : 0,
-				duration: 300,
-				ease: EASE_IN
-			})
-		},
-		'/settings': {
-			in: (axis, dir) => ({
-				x: axis === 'x' ? dir * 560 : 0,
-				y: axis === 'y' ? dir * 560 : 0,
-				duration: 380,
-				ease: EASE_OUT
-			}),
-			out: (axis, dir) => ({
-				x: axis === 'x' ? -dir * 560 : 0,
-				y: axis === 'y' ? -dir * 560 : 0,
-				duration: 300,
-				ease: EASE_IN
-			})
-		},
-		'/table': {
-			in: (_axis, dir) => ({ y: dir * 720, duration: 450, ease: EASE_OUT }),
-			out: (_axis, dir) => ({ y: dir * -720, duration: 380, ease: EASE_IN })
-		}
-	};
-	// ─────────────────────────────────────────────────────────────────────────
 
 	const currentIndex = $derived(
 		modes.findIndex(
@@ -172,94 +90,27 @@
 		if (!canOpenNav) navOpen = false;
 	});
 
-	// 各ページが独自にアニメーションを処理するペア（layout のデフォルトスライドをキャンセル）
-	const customElementPairs = new Set([
-		// ─ 垂直（table） ─
-		'/clock->/table',    '/table->/clock',
-		'/pomodoro->/table', '/table->/pomodoro',
-		'/stack->/table',    '/table->/stack',
-		'/settings->/table', '/table->/settings',
-		// ─ 水平（各ページが制御） ─
-		'/clock->/pomodoro', '/pomodoro->/clock',
-		'/pomodoro->/stack', '/stack->/pomodoro',
-		'/stack->/settings', '/settings->/stack',
-		'/clock->/stack',    '/stack->/clock',
-		'/pomodoro->/settings', '/settings->/pomodoro',
-		'/clock->/settings', '/settings->/clock'
-	]);
-
-	const pairAnimations: Partial<Record<string, { in: TransitionParams; out: TransitionParams }>> = {};
-	// ─────────────────────────────────────────────────────────────────────────
-
-	beforeNavigate(({ to, cancel }) => {
+	beforeNavigate(({ to }) => {
 		if (!to) return;
-		const toPath = to.url.pathname;
-		const fromPath = page.url.pathname;
-		const pairKey = `${fromPath}->${toPath}`;
 
-		if (customElementPairs.has(pairKey)) {
-			if (!get(skipAnimationOnce)) {
-				cancel();
-				pageTransition.set({ from: fromPath, to: toPath });
-				return;
-			}
-			skipAnimationOnce.set(false);
-			outParams = { x: 0, y: 0, duration: 30 };
-			inParams = { x: 0, y: 0, duration: 30 };
-			pageTransition.set({ from: fromPath, to: toPath });
+		// ページが自前で goto() を呼んだ 2 回目のナビゲーション
+		// → layout の pageIn/pageOut を無効化（ページ側の GSAP が全てを担う）
+		// duration: 30 にすることで新ページの onMount → GSAP.from() がセットされる
+		// 猶予を作り、1フレームの素の状態フラッシュを防ぐ（0 にすると発生する）
+		if (layoutAnimFlags.skip) {
+			layoutAnimFlags.skip = false;
+			outParams = { x: 0, y: 0, duration: 0 };
+			inParams = { x: 0, y: 0, duration: 0 };
 			return;
 		}
 
-		// 通常遷移：遷移情報をストアにセット
+		// 通常遷移（サブページ、直接URLアクセスなど）
+		const toPath = to.url.pathname;
+		const fromPath = page.url.pathname;
 		pageTransition.set({ from: fromPath, to: toPath });
 
-		const isVerticalRoot = (p: string) => verticalRoutes.some((r) => p === r);
-		const isVerticalChild = (p: string) =>
-			!isVerticalRoot(p) && verticalRoutes.some((r) => p.startsWith(r + '/'));
-		const isHorizontalRoot = (p: string) => modes.some((m) => p === m.href);
-		const isHorizontalChild = (p: string) =>
-			!isHorizontalRoot(p) && modes.some((m) => p.startsWith(m.href + '/'));
-
-		// 遷移方向を決定
-		let axis: 'x' | 'y';
-		let dir: 1 | -1 = 1;
-
-		if (isVerticalRoot(toPath) && !isVerticalRoot(fromPath) && !isVerticalChild(fromPath)) {
-			axis = 'y';
-			dir = 1;
-		} else if (isVerticalRoot(fromPath) && !isVerticalRoot(toPath) && !isVerticalChild(toPath)) {
-			axis = 'y';
-			dir = -1;
-		} else {
-			axis = 'x';
-			const toIsSub = isHorizontalChild(toPath) || isVerticalChild(toPath);
-			const fromIsSub = isHorizontalChild(fromPath) || isVerticalChild(fromPath);
-
-			if (!fromIsSub && toIsSub) {
-				dir = 1;
-			} else if (fromIsSub && !toIsSub) {
-				dir = -1;
-			} else {
-				const fromIdx = modes.findIndex((m) => fromPath === m.href);
-				const toIdx = modes.findIndex((m) => toPath === m.href);
-				if (fromIdx !== -1 && toIdx !== -1) dir = toIdx > fromIdx ? 1 : -1;
-			}
-		}
-
-		// ペア固有アニメーション -> なければルート別 -> なければデフォルト
-		const pairAnim = pairAnimations[pairKey];
-		if (pairAnim) {
-			inParams = pairAnim.in;
-			outParams = pairAnim.out;
-		} else if (toPath === '/settings' || fromPath === '/settings') {
-			inParams = { opacity: 0, duration: 300, ease: EASE_OUT };
-			outParams = { opacity: 0, duration: 200, ease: EASE_IN };
-		} else {
-			const inAnim = routeAnimations[toPath] ?? defaultAnim;
-			const outAnim = routeAnimations[fromPath] ?? defaultAnim;
-			inParams = inAnim.in(axis, dir);
-			outParams = outAnim.out(axis, dir);
-		}
+		inParams = { opacity: 0, duration: 300, ease: EASE_OUT };
+		outParams = { opacity: 0, duration: 200, ease: EASE_IN };
 	});
 
 	function onPointerDown(e: PointerEvent) {

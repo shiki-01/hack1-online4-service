@@ -1,50 +1,43 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { get } from 'svelte/store';
 	import gsap from 'gsap';
-	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { pageTransition, skipAnimationOnce } from '$lib/transitionStore';
+	import { usePageAnimation } from '$lib/usePageAnimation';
 	import { EASE_OUT, EASE_IN } from '$lib/easings';
-	import { resolve } from '$app/paths';
 	import { localTasks, type LocalTask } from '$lib/localTasks';
 	import { currentLocale, langFiles, LOCALES, type Locale } from '$lib/languageStore';
 	import { t } from '$lib/i18n';
 	import { syncGoogleTasks } from '$lib/googleTasksStore';
+	import { resolve } from '$app/paths';
 
 	let pageEl: HTMLDivElement | undefined = $state();
 
-	onMount(() => {
-		const tr = get(pageTransition);
-		if (!tr || !pageEl) return;
-
-		if (tr.from === '/table') {
-			gsap.from(pageEl, { scale: 0.94, opacity: 0, duration: 0.35, ease: EASE_OUT });
-		} else if (tr.from === '/clock' || tr.from === '/pomodoro' || tr.from === '/stack') {
-			gsap.from(pageEl, { opacity: 0, duration: 0.3, ease: EASE_OUT });
-		}
-	});
-
-	$effect(() => {
-		const tr = $pageTransition;
-		if (!tr || tr.from !== '/settings') return;
-		if (tr.to !== '/clock' && tr.to !== '/pomodoro' && tr.to !== '/stack' && tr.to !== '/table') return;
-		if (!pageEl) return;
-
-		const dest = tr.to;
-		const isTable = dest === '/table';
-
-		gsap.to(pageEl, {
-			...(isTable ? { scale: 0.94 } : {}),
-			opacity: 0,
-			duration: isTable ? 0.28 : 0.2,
-			ease: EASE_IN,
-			onComplete: () => {
-				skipAnimationOnce.set(true);
-				goto(resolve(dest));
+	usePageAnimation({
+		animateIn(from) {
+			if (!pageEl) return;
+			if (from === '/table') {
+				gsap.from(pageEl, { scale: 0.94, opacity: 0, duration: 0.35, ease: EASE_OUT });
+			} else if (from === '/clock' || from === '/pomodoro' || from === '/stack') {
+				gsap.from(pageEl, { opacity: 0, duration: 0.3, ease: EASE_OUT });
 			}
-		});
-		return () => { if (pageEl) gsap.killTweensOf(pageEl); };
+		},
+
+		animateOut(to, done) {
+			const mainPages = ['/clock', '/pomodoro', '/stack', '/table'];
+			if (!mainPages.includes(to) || !pageEl) {
+				// サブページ（/settings/wifi, /settings/qr など）→ アニメーションなし
+				done();
+				return;
+			}
+			const isTable = to === '/table';
+			gsap.to(pageEl, {
+				...(isTable ? { scale: 0.94 } : {}),
+				opacity: 0,
+				duration: isTable ? 0.28 : 0.2,
+				ease: EASE_IN,
+				onComplete: done
+			});
+		}
 	});
 
 	// ---- 認証状態 ----

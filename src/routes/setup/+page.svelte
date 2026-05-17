@@ -63,10 +63,11 @@
 
 			<div style="display: flex; flex-direction: column; gap: 12px;">
 				<div>
-					<label style="display: block; color: #666; font-size: 0.72rem; margin-bottom: 5px;">
+					<label for="ssid" style="display: block; color: #666; font-size: 0.72rem; margin-bottom: 5px;">
 						ネットワーク名 (SSID)
 					</label>
 					<input
+						id="ssid"
 						type="text"
 						bind:value={ssid}
 						placeholder="例: MyHomeWiFi"
@@ -88,11 +89,12 @@
 				</div>
 
 				<div>
-					<label style="display: block; color: #666; font-size: 0.72rem; margin-bottom: 5px;">
+					<label for="pass" style="display: block; color: #666; font-size: 0.72rem; margin-bottom: 5px;">
 						パスワード
 					</label>
 					<div style="position: relative;">
 						<input
+							id="pass"
 							type={showPassword ? 'text' : 'password'}
 							bind:value={password}
 							placeholder="パスワード"

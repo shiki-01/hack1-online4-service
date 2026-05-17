@@ -6,10 +6,8 @@
 	import CircleClock from '$lib/components/CircleClock.svelte';
 	import { physicsRotation, modeSwitchEnabled } from '$lib/physicsController';
 	import TaskCount from '$lib/components/TaskCount.svelte';
-	import { goto } from '$app/navigation';
-	import { pageTransition, skipAnimationOnce } from '$lib/transitionStore';
+	import { usePageAnimation } from '$lib/usePageAnimation';
 	import { EASE_OUT, EASE_IN } from '$lib/easings';
-	import { resolve } from '$app/paths';
 
 	const IS_PHYSICS = import.meta.env.VITE_IS_PHYSICS === 'true';
 
@@ -79,7 +77,6 @@
 	let bubbles: Bubble[] = [];
 	let tickerCallback: (() => void) | null = null;
 
-	let exitTl: gsap.core.Timeline | undefined;
 	let frameId: number | undefined;
 
 	/** ハムスターホイール: 前フレームの回転値を記録してΔを計算 */
@@ -87,144 +84,66 @@
 	/** 接線力の倍率 (小さいほど回転の影響が小さい) */
 	const HAMSTER_FACTOR = 25;
 
-	/** /stack → /table 退場アニメーション */
-	$effect(() => {
-		const t = $pageTransition;
-		if (!t || t.from !== '/stack' || t.to !== '/table') return;
-		const taskCountNode = taskCountEl?.firstElementChild as HTMLElement | null;
-		if (!pageEl || !taskCountNode || !canvas || !canvasWrap) return;
-
-		gsap.to(canvas, { scale: 1.2, duration: 0.3, ease: EASE_IN });
-		gsap.to(canvasWrap, { width: 200, height: 200, duration: 0.3, ease: EASE_IN });
-		gsap.to(taskCountNode, { y: -400, duration: 0.3, ease: EASE_IN });
-		gsap.to(pageEl, {
-			scale: 1,
-			duration: 0.28,
-			ease: EASE_IN,
-			onComplete: () => {
-				skipAnimationOnce.set(true);
-				goto(resolve('/table'));
+	usePageAnimation({
+		animateIn(from) {
+			const taskCountNode = taskCountEl?.firstElementChild as HTMLElement | null;
+			const circleClockNode = circleClockEl?.firstElementChild as HTMLElement | null;
+			if (from === '/table' && pageEl && taskCountNode && canvas && canvasWrap) {
+				gsap.from(canvasWrap, { width: 200, height: 200, duration: 0.3, ease: EASE_OUT });
+				gsap.from(canvas, { scale: 1.2, duration: 0.3, ease: EASE_OUT });
+				gsap.from(taskCountNode, { y: -400, duration: 0.3, ease: EASE_OUT });
+				gsap.from(pageEl, { scale: 1, duration: 0.35, ease: EASE_OUT });
+			} else if (from === '/pomodoro') {
+				if (canvasWrap) gsap.from(canvasWrap, { transform: 'translate(-50%,0)', duration: 0.4, ease: EASE_OUT });
+			} else if (from === '/clock') {
+				const tl = gsap.timeline();
+				tl.from(circleClockNode, { opacity: 0, duration: 0.4, ease: EASE_OUT }, 0);
+				tl.from(taskCountNode, { transform: 'translate(-50%,-130px)', duration: 0.4, ease: EASE_OUT }, 0);
+				if (canvasWrap) tl.from(canvasWrap, { transform: 'translate(50%,0)', duration: 0.4, ease: EASE_OUT }, 0);
 			}
-		});
-		return () => {
-			if (pageEl) gsap.killTweensOf(pageEl);
-		};
-	});
+		},
 
-	/** /stack → 水平ページ 退場アニメーション */
-	$effect(() => {
-		const t = $pageTransition;
-		if (!t || t.from !== '/stack') return;
-		const taskCountNode = taskCountEl?.firstElementChild as HTMLElement | null;
-		const circleClockNode = circleClockEl?.firstElementChild as HTMLElement | null;
-		if (t.to !== '/clock' && t.to !== '/pomodoro' && t.to !== '/settings') return;
-
-		const dest = t.to;
-		exitTl?.kill();
-		const tl = gsap.timeline({
-			onComplete: () => {
-				skipAnimationOnce.set(true);
-				goto(resolve(dest));
+		animateOut(to, done) {
+			const taskCountNode = taskCountEl?.firstElementChild as HTMLElement | null;
+			const circleClockNode = circleClockEl?.firstElementChild as HTMLElement | null;
+			if (to === '/table') {
+				// done() を 0.2s で先行発火させ、ナビゲーション処理をアニメーション末尾と重ねてフリーズを隠す
+				const tl = gsap.timeline();
+				if (canvas) tl.to(canvas, { scale: 1.2, duration: 0.3, ease: EASE_IN }, 0);
+				if (canvasWrap) tl.to(canvasWrap, { width: 200, height: 200, duration: 0.3, ease: EASE_IN }, 0);
+				tl.to(taskCountNode, { y: -400, duration: 0.3, ease: EASE_IN }, 0);
+				if (pageEl) tl.to(pageEl, { scale: 1, duration: 0.28, ease: EASE_IN }, 0);
+				tl.call(done, [], 0.2);
+				return;
 			}
-		});
-		exitTl = tl;
 
-		if (dest === '/clock') {
-			tl.to(
-				circleClockNode,
-				{
-					opacity: 0,
-					duration: 0.2,
-					ease: EASE_IN
-				},
-				0
-			);
-			tl.to(
-				taskCountNode,
-				{
-					transform: 'translate(-50%,-100px) scale(1.2)',
-					duration: 0.2,
-					ease: EASE_IN
-				},
-				0
-			);
-		} else if (dest === '/pomodoro') {
-			tl.to(
-				taskCountNode,
-				{
-					duration: 0.2,
-					ease: EASE_IN
-				},
-				0
-			);
+			if (to === '/clock') {
+				const tl = gsap.timeline({ onComplete: done });
+				tl.to(circleClockNode, { opacity: 0, duration: 0.2, ease: EASE_IN }, 0);
+				tl.to(taskCountNode, { transform: 'translate(-50%,-100px) scale(1.2)', duration: 0.2, ease: EASE_IN }, 0);
+				return;
+			}
+
+			if (to === '/pomodoro') {
+				const tl = gsap.timeline({ onComplete: done });
+				tl.to(taskCountNode, { duration: 0.2, ease: EASE_IN }, 0);
+				return;
+			}
+
+			if (to === '/settings') {
+				done();
+				return;
+			}
+
+			// 未知の遷移先ではこのページ固有の animateOut を適用しない
+			done();
 		}
-
-		return () => {
-			exitTl?.kill();
-		};
 	});
 
 	onMount(() => {
-		const tick = () => {
-			frameId = requestAnimationFrame(tick);
-		};
+		const tick = () => { frameId = requestAnimationFrame(tick); };
 		frameId = requestAnimationFrame(tick);
 		if (!canvas) return;
-		const transition = get(pageTransition);
-		const taskCountNode = taskCountEl?.firstElementChild as HTMLElement | null;
-		const circleClockNode = circleClockEl?.firstElementChild as HTMLElement | null;
-
-		if (transition?.from === '/table' && pageEl && taskCountNode && canvas && canvasWrap) {
-			// /table → /stack エントリーアニメーション
-			gsap.from(canvasWrap, { width: 200, height: 200, duration: 0.3, ease: EASE_OUT });
-			gsap.from(canvas, { scale: 1.2, duration: 0.3, ease: EASE_OUT });
-			gsap.from(taskCountNode, { y: -400, duration: 0.3, ease: EASE_OUT });
-			gsap.from(pageEl, { scale: 1, duration: 0.35, ease: EASE_OUT });
-		} else if (transition?.from === '/pomodoro') {
-			const tl = gsap.timeline();
-			if (canvasWrap) {
-				tl.from(
-					canvasWrap,
-					{
-						transform: 'translate(-50%,0)',
-						duration: 0.4,
-						ease: EASE_OUT
-					},
-					0
-				);
-			}
-		} else if (transition?.from === '/clock') {
-			const tl = gsap.timeline();
-			tl.from(
-				circleClockNode,
-				{
-					opacity: 0,
-					duration: 0.4,
-					ease: EASE_OUT
-				},
-				0
-			);
-			tl.from(
-				taskCountNode,
-				{
-					transform: 'translate(-50%,-130px)',
-					duration: 0.4,
-					ease: EASE_OUT
-				},
-				0
-			);
-			if (canvasWrap) {
-				tl.from(
-					canvasWrap,
-					{
-						transform: 'translate(50%,0)',
-						duration: 0.4,
-						ease: EASE_OUT
-					},
-					0
-				);
-			}
-		}
 
 		const tasks = get(pendingTasks);
 

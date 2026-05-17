@@ -5,15 +5,11 @@
 	import { currentLocale } from '$lib/languageStore';
 	import { t } from '$lib/i18n';
 	import gsap from 'gsap';
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
-	import { pageTransition, skipAnimationOnce } from '$lib/transitionStore';
+	import { usePageAnimation } from '$lib/usePageAnimation';
 	import { EASE_OUT, EASE_IN } from '$lib/easings';
-	import { get } from 'svelte/store';
 
 	let now = $state(new Date());
 	let frameId: number | undefined;
-
 	let clockOuter: HTMLDivElement | undefined = $state();
 	let numsWrap: HTMLDivElement | undefined = $state();
 	let handsWrapEl: HTMLDivElement | undefined = $state();
@@ -27,179 +23,50 @@
 			frameId = requestAnimationFrame(tick);
 		};
 		frameId = requestAnimationFrame(tick);
-
-		const t = get(pageTransition);
-
-		if (t?.from === '/table' && clockOuter) {
-			// /table → /clock エントリーアニメーション（clock→table の逆）
-			const tl = gsap.timeline();
-			if (numsWrap) tl.from(numsWrap, { scale: 2, duration: 0.4, ease: EASE_OUT }, 0);
-			if (handsWrapEl) tl.from(handsWrapEl, { scale: 1.6, duration: 0.3, ease: EASE_OUT }, 0);
-			if (centerCircleEl) tl.from(centerCircleEl, { width: 720, duration: 0.4, ease: EASE_OUT }, 0);
-			if (clockWrap) tl.from(clockWrap, { opacity: 0, duration: 0.4, ease: EASE_OUT }, 0);
-			if (taskCountEl)
-				tl.from(taskCountEl, { scale: 0.9, y: -20, duration: 0.4, ease: EASE_OUT }, 0);
-		} else if (t?.from === '/pomodoro' || t?.from === '/stack') {
-			const tl = gsap.timeline();
-			const lr = t?.from === '/pomodoro';
-			if (numsWrap) {
-				tl.from(
-					numsWrap,
-					{
-						transform: `translate(${lr ? '50' : '-50'}%)`,
-						duration: 0.4,
-						ease: EASE_OUT
-					},
-					0
-				);
-			}
-			if (handsWrapEl) {
-				tl.from(
-					handsWrapEl,
-					{
-						transform: `translate(${lr ? '50' : '-50'}%)`,
-						duration: 0.4,
-						ease: EASE_OUT
-					},
-					0
-				);
-			}
-			if (clockWrap) {
-				tl.from(
-					clockWrap,
-					{
-						transform: `translate(${lr ? '50' : '-50'}%)`,
-						duration: 0.4,
-						ease: EASE_OUT
-					},
-					0
-				);
-			}
-			if (taskCountEl) {
-				tl.from(
-					taskCountEl,
-					{
-						transform: 'translateY(130px) scale(1)',
-						duration: 0.4,
-						ease: EASE_OUT
-					},
-					0
-				);
-			}
-		}
-
 		return () => {
 			if (frameId !== undefined) cancelAnimationFrame(frameId);
 		};
 	});
 
-	let exitTl: gsap.core.Timeline | undefined;
-
-	$effect(() => {
-		const t = $pageTransition;
-		if (!t || t.from !== '/clock' || t.to !== '/table') return;
-
-		exitTl?.kill();
-		const tl = gsap.timeline({
-			onComplete: () => {
-				skipAnimationOnce.set(true);
-				goto(resolve('/table'));
+	usePageAnimation({
+		animateIn(from) {
+			if (from === '/table') {
+				const tl = gsap.timeline();
+				if (numsWrap) tl.from(numsWrap, { scale: 2, duration: 0.4, ease: EASE_OUT }, 0);
+				if (handsWrapEl) tl.from(handsWrapEl, { scale: 1.6, duration: 0.3, ease: EASE_OUT }, 0);
+				if (centerCircleEl) tl.from(centerCircleEl, { width: 720, duration: 0.4, ease: EASE_OUT }, 0);
+				if (clockWrap) tl.from(clockWrap, { opacity: 0, duration: 0.4, ease: EASE_OUT }, 0);
+				if (taskCountEl) tl.from(taskCountEl, { scale: 0.9, y: -20, duration: 0.4, ease: EASE_OUT }, 0);
+			} else if (from === '/pomodoro' || from === '/stack') {
+				const lr = from === '/pomodoro';
+				const tl = gsap.timeline();
+				if (numsWrap) tl.from(numsWrap, { transform: `translate(${lr ? '50' : '-50'}%)`, duration: 0.4, ease: EASE_OUT }, 0);
+				if (handsWrapEl) tl.from(handsWrapEl, { transform: `translate(${lr ? '50' : '-50'}%)`, duration: 0.4, ease: EASE_OUT }, 0);
+				if (clockWrap) tl.from(clockWrap, { transform: `translate(${lr ? '50' : '-50'}%)`, duration: 0.4, ease: EASE_OUT }, 0);
+				if (taskCountEl) tl.from(taskCountEl, { transform: 'translateY(130px) scale(1)', duration: 0.4, ease: EASE_OUT }, 0);
 			}
-		});
-		exitTl = tl;
+		},
 
-		if (numsWrap) {
-			tl.to(
-				numsWrap,
-				{
-					scale: 2,
-					duration: 0.4,
-					ease: EASE_IN,
-					stagger: { amount: 0.14, from: 'random' }
-				},
-				0
-			);
-		}
-
-		if (handsWrapEl) tl.to(handsWrapEl, { scale: 1.8, duration: 0.3, ease: EASE_IN }, 0);
-
-		if (centerCircleEl) {
-			tl.to(centerCircleEl, { width: 720, duration: 0.4, ease: EASE_IN }, 0);
-		}
-
-		if (clockWrap) {
-			tl.to(clockWrap, { opacity: 0, duration: 0.4, ease: EASE_IN }, 0);
-		}
-
-		if (taskCountEl) {
-			tl.to(taskCountEl, { scale: 0.9, y: -20, duration: 0.4, ease: EASE_IN }, 0);
-		}
-
-		return () => {
-			exitTl?.kill();
-		};
-	});
-
-	/** /clock → 水平ページ 退場アニメーション */
-	$effect(() => {
-		const t = $pageTransition;
-		if (!t || t.from !== '/clock') return;
-		if (t.to !== '/pomodoro' && t.to !== '/stack' && t.to !== '/settings') return;
-
-		const dest = t.to;
-		const lr = dest === '/pomodoro';
-
-		exitTl?.kill();
-		const tl = gsap.timeline({
-			onComplete: () => {
-				skipAnimationOnce.set(true);
-				goto(resolve(dest));
+		animateOut(to, done) {
+			if (to === '/table') {
+				// done() を 0.3s で先行発火させ、ナビゲーション処理をアニメーション末尾と重ねてフリーズを隠す
+				const tl = gsap.timeline();
+				if (numsWrap) tl.to(numsWrap, { scale: 2, duration: 0.4, ease: EASE_IN, stagger: { amount: 0.14, from: 'random' } }, 0);
+				if (handsWrapEl) tl.to(handsWrapEl, { scale: 1.8, duration: 0.3, ease: EASE_IN }, 0);
+				if (centerCircleEl) tl.to(centerCircleEl, { width: 720, duration: 0.4, ease: EASE_IN }, 0);
+				if (clockWrap) tl.to(clockWrap, { opacity: 0, duration: 0.4, ease: EASE_IN }, 0);
+				if (taskCountEl) tl.to(taskCountEl, { scale: 0.9, y: -20, duration: 0.4, ease: EASE_IN }, 0);
+				tl.call(done, [], 0.3);
+				return;
 			}
-		});
-		exitTl = tl;
-
-		if (numsWrap && handsWrapEl && clockWrap && taskCountEl) {
-			tl.to(
-				numsWrap,
-				{
-					transform: `translateX(${lr ? '50' : '-50'}%)`,
-					duration: 0.2,
-					ease: EASE_IN
-				},
-				0
-			);
-			tl.to(
-				handsWrapEl,
-				{
-					transform: `translateX(${lr ? '50' : '-50'}%)`,
-					duration: 0.2,
-					ease: EASE_IN
-				},
-				0
-			);
-			tl.to(
-				clockWrap,
-				{
-					transform: `translateX(${lr ? '50' : '-50'}%)`,
-					duration: 0.2,
-					ease: EASE_IN
-				},
-				0
-			);
-			tl.to(
-				taskCountEl,
-				{
-					transform: 'translateY(100px)',
-					scale: 0.9,
-					duration: 0.2,
-					ease: EASE_IN
-				},
-				0
-			);
+			const tl = gsap.timeline({ onComplete: done });
+			// /pomodoro, /stack, /settings
+			const lr = to === '/pomodoro';
+			if (numsWrap) tl.to(numsWrap, { transform: `translateX(${lr ? '50' : '-50'}%)`, duration: 0.2, ease: EASE_IN }, 0);
+			if (handsWrapEl) tl.to(handsWrapEl, { transform: `translateX(${lr ? '50' : '-50'}%)`, duration: 0.2, ease: EASE_IN }, 0);
+			if (clockWrap) tl.to(clockWrap, { transform: `translateX(${lr ? '50' : '-50'}%)`, duration: 0.2, ease: EASE_IN }, 0);
+			if (taskCountEl) tl.to(taskCountEl, { transform: 'translateY(100px)', scale: 0.9, duration: 0.2, ease: EASE_IN }, 0);
 		}
-		return () => {
-			exitTl?.kill();
-		};
 	});
 
 	const h = $derived(now.getHours());
