@@ -1,5 +1,6 @@
 import { onMount } from 'svelte';
 import { beforeNavigate, goto } from '$app/navigation';
+import { resolve } from '$app/paths';
 import { get } from 'svelte/store';
 import { page } from '$app/state';
 import { pageTransition } from './transitionStore';
@@ -66,7 +67,6 @@ export function usePageAnimation(handlers: {
 		}
 
 		const fromPath = page.url.pathname;
-		// to.url.pathname はベースパス適用済みなので resolve() 不要
 		const destPath = to.url.pathname;
 
 		cancel();
@@ -76,7 +76,9 @@ export function usePageAnimation(handlers: {
 		handlers.animateOut(destPath, () => {
 			skipNext = true;
 			layoutAnimFlags.skip = true;
-			goto(destPath);
+			// destPath は SvelteKit の beforeNavigate が生成した pathname なので
+			// 必ず有効なルートであることが保証される。resolve() の型制約にキャスト。
+			goto(resolve(destPath as Parameters<typeof resolve>[0]));
 		});
 	});
 }
