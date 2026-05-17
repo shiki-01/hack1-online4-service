@@ -94,11 +94,13 @@
 		if (!to) return;
 
 		// ページが自前で goto() を呼んだ 2 回目のナビゲーション
-		// → pageIn/pageOut を無効化（ページ側のアニメーションが全てを担う）
+		// → layout の pageIn/pageOut を無効化（ページ側の GSAP が全てを担う）
+		// duration: 30 にすることで新ページの onMount → GSAP.from() がセットされる
+		// 猶予を作り、1フレームの素の状態フラッシュを防ぐ（0 にすると発生する）
 		if (layoutAnimFlags.skip) {
 			layoutAnimFlags.skip = false;
-			outParams = { duration: 0 };
-			inParams = { duration: 0 };
+			outParams = { x: 0, y: 0, duration: 30 };
+			inParams = { x: 0, y: 0, duration: 30 };
 			return;
 		}
 
