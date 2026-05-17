@@ -76,9 +76,11 @@ export function usePageAnimation(handlers: {
 		handlers.animateOut(destPath, () => {
 			skipNext = true;
 			layoutAnimFlags.skip = true;
-			// destPath は SvelteKit の beforeNavigate が生成した pathname なので
-			// 必ず有効なルートであることが保証される。resolve() の型制約にキャスト。
-			goto(resolve(destPath as Parameters<typeof resolve>[0]));
+			// destPath は beforeNavigate の to.url.pathname なので必ず有効なルート。
+			// resolve() の型引数は SvelteKit が生成する union 型のため、
+			// Parameters<typeof resolve> が never になる制限を as any で回避する。
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			goto(resolve(destPath as any));
 		});
 	});
 }
